@@ -1,6 +1,9 @@
 import streamlit as st
 import plotly.graph_objects as go
+import pandas as pd
+import numpy as np
 import time
+from sklearn.ensemble import RandomForestClassifier
 
 # --------------------------------------------------------
 # PAGE CONFIGURATION & THEME
@@ -12,7 +15,6 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS to improve UI depth, whitespace, and layout card padding
 st.markdown("""
     <style>
         .block-container {
@@ -46,10 +48,62 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # --------------------------------------------------------
+# BUILD A DEMO MODEL & FEATURE NAMES (runs once)
+# --------------------------------------------------------
+@st.cache_resource
+def build_demo_model():
+    """
+    Trains a lightweight RandomForest on synthetic data so the app
+    works out-of-the-box without any external model file.
+    Replace this function with your own model loading logic if needed.
+    """
+    transaction_types = ["ATM", "POS", "Online", "QR"]
+    merchant_categories = ["Food", "Travel", "Electronics", "Grocery"]
+    countries = ["US", "UK", "FR", "NG", "TR"]
+
+    base_cols = ["amount", "hour", "device_risk_score", "ip_risk_score"]
+    tt_cols   = [f"transaction_type_{t}" for t in transaction_types]
+    mc_cols   = [f"merchant_category_{m}" for m in merchant_categories]
+    co_cols   = [f"country_{c}" for c in countries]
+    feat_cols = base_cols + tt_cols + mc_cols + co_cols
+
+    rng = np.random.default_rng(42)
+    n   = 2000
+    X   = pd.DataFrame(0, index=range(n), columns=feat_cols)
+
+    X["amount"]           = rng.exponential(scale=500, size=n)
+    X["hour"]             = rng.integers(0, 24, size=n)
+    X["device_risk_score"]= rng.uniform(0, 1, size=n)
+    X["ip_risk_score"]    = rng.uniform(0, 1, size=n)
+
+    for col in tt_cols:
+        chosen = rng.choice(tt_cols, size=n)
+        X[col] = (chosen == col).astype(int)
+    for col in mc_cols:
+        chosen = rng.choice(mc_cols, size=n)
+        X[col] = (chosen == col).astype(int)
+    for col in co_cols:
+        chosen = rng.choice(co_cols, size=n)
+        X[col] = (chosen == col).astype(int)
+
+    # Fraud label: higher risk scores + large amounts + night hours → more likely fraud
+    fraud_prob = (
+        0.4 * X["device_risk_score"]
+        + 0.4 * X["ip_risk_score"]
+        + 0.1 * (X["amount"] > 1000).astype(float)
+        + 0.1 * ((X["hour"] < 6) | (X["hour"] > 22)).astype(float)
+    )
+    y = (rng.uniform(size=n) < fraud_prob).astype(int)
+
+    clf = RandomForestClassifier(n_estimators=50, random_state=42)
+    clf.fit(X, y)
+    return clf, feat_cols
+
+model, feature_names = build_demo_model()
+
+# --------------------------------------------------------
 # SESSION STATE INITIALIZATION
 # --------------------------------------------------------
-# This keeps track of risk states globally so the right-side gauge
-# updates dynamically as the user interacts with the app features.
 if "risk_score" not in st.session_state:
     st.session_state.risk_score = 15
 if "risk_level" not in st.session_state:
@@ -65,7 +119,7 @@ if "chat_history" not in st.session_state:
     ]
 
 # --------------------------------------------------------
-# HEADER HEADER SECTION
+# HEADER
 # --------------------------------------------------------
 st.markdown("""
     <div class="main-header">
@@ -111,7 +165,7 @@ st.sidebar.markdown("### 🛡️ Secure Core Version")
 st.sidebar.info("Model Engine v2.5-Live\nLast Sync: Just Now")
 
 # --------------------------------------------------------
-# HELPER ACTIONS TO UPDATE GLOBALLY TRACKED STATE
+# HELPER: UPDATE GLOBALLY TRACKED RISK STATE
 # --------------------------------------------------------
 def update_risk_profile(score, level, factors):
     st.session_state.risk_score = score
@@ -124,14 +178,14 @@ def update_risk_profile(score, level, factors):
 main_col, right_col = st.columns([1.8, 1])
 
 with main_col:
+
     # --------------------------------------------------------
     # 1. Dashboard Overview
     # --------------------------------------------------------
     if menu_option == "📊 Dashboard Overview":
         st.subheader("📊 System-wide Overview Dashboard")
         st.write("Live status telemetry feed of transaction patterns and flagged vector groups.")
-        
-        # Statistics Row
+
         m1, m2, m3 = st.columns(3)
         with m1:
             st.metric("Transactions Scanned", "148,930", "+14% vs yesterday", delta_color="normal")
@@ -139,123 +193,134 @@ with main_col:
             st.metric("Anomalies Flagged", "42", "2.1% target rate", delta_color="inverse")
         with m3:
             st.metric("Average Threat Response", "48ms", "AI pipeline latency", delta_color="normal")
-            
+
         st.markdown("---")
         st.markdown("### Recent System Incidents")
         st.dataframe([
-            {"Timestamp": "14:24:02", "Vector": "UPI ID Anomaly", "VPA Target": "rewards-refund@paytm", "Risk Score": "84%", "Action": "Auto-Hold"},
-            {"Timestamp": "14:21:15", "Vector": "Normal Transaction", "Account": "ACC-99812", "Risk Score": "24%", "Action": "Approved"},
-            {"Timestamp": "14:15:33", "Vector": "Fraud Domain", "URL Target": "http://bank-verification-ssl.com", "Risk Score": "96%", "Action": "Blacklisted"},
-            {"Timestamp": "14:02:49", "Vector": "QR Exploitation", "Payload Source": "Mule VPA Redirect", "Risk Score": "71%", "Action": "User Alerted"}
+            {"Timestamp": "14:24:02", "Vector": "UPI ID Anomaly",       "VPA Target":    "rewards-refund@paytm",            "Risk Score": "84%", "Action": "Auto-Hold"},
+            {"Timestamp": "14:21:15", "Vector": "Normal Transaction",    "Account":       "ACC-99812",                       "Risk Score": "24%", "Action": "Approved"},
+            {"Timestamp": "14:15:33", "Vector": "Fraud Domain",          "URL Target":    "http://bank-verification-ssl.com", "Risk Score": "96%", "Action": "Blacklisted"},
+            {"Timestamp": "14:02:49", "Vector": "QR Exploitation",       "Payload Source":"Mule VPA Redirect",               "Risk Score": "71%", "Action": "User Alerted"}
         ], use_container_width=True)
 
     # --------------------------------------------------------
-    # 2. Normal Transaction Detection
+    # 2. Normal Transaction Detection  ← FIXED SECTION
     # --------------------------------------------------------
     elif menu_option == "💳 Normal Transaction Detection":
-        # User Inputs
-amount = st.number_input("Amount", min_value=0.0)
+        st.subheader("💳 AI-Powered Transaction Fraud Predictor")
+        st.write("Enter transaction details below to assess fraud probability using the trained model.")
 
-transaction_type = st.selectbox(
-    "Transaction Type",
-    ["ATM", "POS", "Online", "QR"]
-)
+        amount = st.number_input("Amount (₹)", min_value=0.0, value=500.0, step=50.0)
 
-merchant_category = st.selectbox(
-    "Merchant Category",
-    [
-        "Food",
-        "Travel",
-        "Electronics",
-        "Grocery"
-    ]
-)
-country = st.selectbox(
-    "Country",
-    ["US", "UK", "FR", "NG", "TR"]
-)
-
-hour = st.slider(
-    "Transaction Hour",
-    0,
-    23,
-    12
-)
-
-# Auto-generated risk scores
-risk_profile = st.selectbox(
-    "Risk Profile",
-    [
-        "Low Risk",
-        "Medium Risk",
-        "High Risk"
-    ]
-)
-
-if risk_profile == "Low Risk":
-    device_risk_score = 0.15
-    ip_risk_score = 0.10
-
-elif risk_profile == "Medium Risk":
-    device_risk_score = 0.50
-    ip_risk_score = 0.45
-
-else:
-    device_risk_score = 0.95
-    ip_risk_score = 0.90
-if st.button("Predict Fraud"):
-
-    # Create input dictionary
-    input_data = {}
-
-    # Initialize all features to 0
-    for col in feature_names:
-        input_data[col] = 0
-
-    # Numerical Features
-    if "amount" in feature_names:
-        input_data["amount"] = amount
-
-    if "hour" in feature_names:
-        input_data["hour"] = hour
-
-    if "device_risk_score" in feature_names:
-        input_data["device_risk_score"] = device_risk_score
-
-    if "ip_risk_score" in feature_names:
-        input_data["ip_risk_score"] = ip_risk_score
-
-    # Dummy Columns
-    transaction_col = f"transaction_type_{transaction_type}"
-    merchant_col = f"merchant_category_{merchant_category}"
-    country_col = f"country_{country}"
-
-    if transaction_col in feature_names:
-        input_data[transaction_col] = 1
-
-    if merchant_col in feature_names:
-        input_data[merchant_col] = 1
-
-    if country_col in feature_names:
-        input_data[country_col] = 1
-
-    # Create dataframe
-    input_df = pd.DataFrame([input_data])
-
-    # Prediction
-    prediction = model.predict(input_df)[0]
-
-    probability = model.predict_proba(input_df)[0][1]
-
-    # Display result
-    if prediction == 1:
-        st.error(
-            f"⚠️ Fraud Detected\n\nProbability: {probability:.2%}"
+        transaction_type = st.selectbox(
+            "Transaction Type",
+            ["ATM", "POS", "Online", "QR"]
         )
-    else:
-        st.success(
-            f"✅ Legitimate Transaction\n\nProbability: {probability:.2%}"
+
+        merchant_category = st.selectbox(
+            "Merchant Category",
+            ["Food", "Travel", "Electronics", "Grocery"]
         )
+
+        country = st.selectbox(
+            "Country",
+            ["US", "UK", "FR", "NG", "TR"]
+        )
+
+        hour = st.slider("Transaction Hour (24h)", 0, 23, 12)
+
+        risk_profile = st.selectbox(
+            "Risk Profile",
+            ["Low Risk", "Medium Risk", "High Risk"]
+        )
+
+        if risk_profile == "Low Risk":
+            device_risk_score = 0.15
+            ip_risk_score     = 0.10
+        elif risk_profile == "Medium Risk":
+            device_risk_score = 0.50
+            ip_risk_score     = 0.45
+        else:
+            device_risk_score = 0.95
+            ip_risk_score     = 0.90
+
+        if st.button("🔍 Predict Fraud", use_container_width=True):
+            with st.spinner("Running AI inference pipeline..."):
+                time.sleep(0.6)
+
+            # Build input row — initialise all features to 0
+            input_data = {col: 0 for col in feature_names}
+
+            # Numerical features
+            input_data["amount"]            = amount
+            input_data["hour"]              = hour
+            input_data["device_risk_score"] = device_risk_score
+            input_data["ip_risk_score"]     = ip_risk_score
+
+            # One-hot dummy columns
+            for col_key, col_val in [
+                (f"transaction_type_{transaction_type}", 1),
+                (f"merchant_category_{merchant_category}", 1),
+                (f"country_{country}", 1),
+            ]:
+                if col_key in input_data:
+                    input_data[col_key] = col_val
+
+            input_df   = pd.DataFrame([input_data])
+            prediction = model.predict(input_df)[0]
+            probability= model.predict_proba(input_df)[0][1]
+            score_pct  = int(probability * 100)
+
+            if prediction == 1:
+                current_level = "HIGH" if score_pct >= 70 else "MEDIUM"
+                st.error(f"⚠️ **Fraud Detected** — Probability: **{probability:.2%}**")
+                update_risk_profile(
+                    score=score_pct,
+                    level=current_level,
+                    factors=[
+                        f"Device risk score elevated at {device_risk_score:.2f}.",
+                        f"IP risk score elevated at {ip_risk_score:.2f}.",
+                        f"Transaction of ₹{amount:.0f} via {transaction_type} flagged at hour {hour}.",
+                        f"Country '{country}' / category '{merchant_category}' combination is suspicious."
+                    ]
+                )
+            else:
+                current_level = "LOW"
+                st.success(f"✅ **Legitimate Transaction** — Fraud Probability: **{probability:.2%}**")
+                update_risk_profile(
+                    score=score_pct,
+                    level=current_level,
+                    factors=[
+                        f"Device fingerprint verified (score: {device_risk_score:.2f}).",
+                        f"IP routing looks clean (score: {ip_risk_score:.2f}).",
+                        f"Transaction of ₹{amount:.0f} via {transaction_type} is within normal range.",
+                        f"Country '{country}' / category '{merchant_category}' carries no anomaly flags."
+                    ]
+                )
+
+            # Feature importance mini-bar chart
+            st.markdown("---")
+            st.markdown("##### 📊 Model Feature Contributions")
+            importances = model.feature_importances_
+            top_n       = 6
+            top_idx     = np.argsort(importances)[::-1][:top_n]
+            top_feats   = [feature_names[i] for i in top_idx]
+            top_vals    = [importances[i] for i in top_idx]
+
+            fig_bar = go.Figure(go.Bar(
+                x=top_vals[::-1],
+                y=top_feats[::-1],
+                orientation="h",
+                marker_color="#3b82f6"
+            ))
+            fig_bar.update_layout(
+                height=220,
+                margin=dict(l=10, r=10, t=10, b=10),
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(0,0,0,0)",
+                xaxis_title="Importance",
+            )
+            st.plotly_chart(fig_bar, use_container_width=True)
 
     # --------------------------------------------------------
     # 3. QR Code Detection
@@ -263,15 +328,14 @@ if st.button("Predict Fraud"):
     elif menu_option == "🔲 QR Code Detection":
         st.subheader("🔲 QR Decryption & Spoofing Defense")
         st.write("Upload static printed QR codes to scan embedded links for script injection or redirection routes.")
-        
+
         uploaded_file = st.file_uploader("Upload QR Code Image Target", type=["png", "jpg", "jpeg"])
-        raw_qr_data = st.text_input("Or input raw extracted QR payload string directly:")
-        
+        raw_qr_data   = st.text_input("Or input raw extracted QR payload string directly:")
+
         if uploaded_file or raw_qr_data:
             with st.spinner("Extracting hidden metadata packets..."):
                 time.sleep(0.8)
-            
-            # Analyze contents for phishing/spoofing indicators
+
             payload = raw_qr_data if raw_qr_data else "https://shorturl.at/xK98a-secure-verification"
             if "shorturl" in payload or "secure-verification" in payload or "bit.ly" in payload:
                 update_risk_profile(
@@ -279,7 +343,7 @@ if st.button("Predict Fraud"):
                     level="HIGH",
                     factors=[
                         "Embedded URL maps through an untrusted domain shortener.",
-                        "String analysis contains high confidence banking keywords masquerading as target VPA."
+                        "String analysis contains high-confidence banking keywords masquerading as target VPA."
                     ]
                 )
                 st.error("🚨 Malicious QR Payload Indicator Triggered!")
@@ -287,9 +351,7 @@ if st.button("Predict Fraud"):
                 update_risk_profile(
                     score=18,
                     level="LOW",
-                    factors=[
-                        "QR string successfully maps to verified merchant gateway directly."
-                    ]
+                    factors=["QR string successfully maps to verified merchant gateway directly."]
                 )
                 st.success("✅ Secure QR code signature. Proceed securely.")
 
@@ -299,20 +361,19 @@ if st.button("Predict Fraud"):
     elif menu_option == "🌐 Fraud Website Detection":
         st.subheader("🌐 Website Reputation & Phishing URL Check")
         st.write("Evaluate domain registration dates, hosting nameservers, and spelling vectors for high-risk flags.")
-        
+
         target_domain = st.text_input("Target Domain URL Address", placeholder="http://login-verification-paypal-security.com")
-        
+
         if st.button("Query Domain Database"):
             if not target_domain:
                 st.info("Please enter a domain URL to run live audits.")
             else:
                 with st.spinner("Scanning DNS records, WHOIS database, and certificate trails..."):
                     time.sleep(1.0)
-                
-                # Dynamic matching heuristic simulation
+
                 suspicious_keywords = ["secure", "bank", "login", "verification", "update", "paypal", "support"]
                 found_flags = [kw for kw in suspicious_keywords if kw in target_domain.lower()]
-                
+
                 if len(found_flags) >= 2 or ".net" in target_domain or ".xyz" in target_domain:
                     update_risk_profile(
                         score=91,
@@ -340,17 +401,17 @@ if st.button("Predict Fraud"):
     # --------------------------------------------------------
     elif menu_option == "🆔 UPI ID Detection":
         st.subheader("🆔 Virtual Payment Address (VPA) Threat Auditor")
-        st.write("Query UPI handles against crowd-sourced spamlists and instant transaction reversal metrics.")
-        
+        st.write("Query UPI handles against crowd-sourced spam lists and instant transaction reversal metrics.")
+
         target_vpa = st.text_input("VPA UPI Handle Address", placeholder="e.g., trust-claims@freecharge")
-        
+
         if st.button("Evaluate UPI Address"):
             if not target_vpa:
                 st.info("Input a payment address VPA to check reputation.")
             else:
                 with st.spinner("Requesting historical spam databases..."):
                     time.sleep(0.5)
-                
+
                 if "free" in target_vpa.lower() or "spam" in target_vpa.lower() or "cash" in target_vpa.lower():
                     update_risk_profile(
                         score=69,
@@ -377,24 +438,23 @@ if st.button("Predict Fraud"):
     # 6. Fraud Network Analysis
     # --------------------------------------------------------
     elif menu_option == "🕸️ Fraud Network Analysis":
-        st.subheader("🕸️ Dynamic Fraud Association Graph Graph viz")
+        st.subheader("🕸️ Dynamic Fraud Association Graph Viz")
         st.write("This graphical network exposes connected entities, mules, and untrustworthy foreign mixers mapping to the target ID.")
-        
-        # Draw clean Graphviz path representation
+
         st.graphviz_chart('''
         digraph {
             node [style=filled, shape=box, fontname="Helvetica", fontsize=10];
             "Target Transaction ID" [fillcolor="#ffb3b3", color="#ff4d4d", label="Suspicious Transaction\\n(Score: 84%)"];
-            "Mule Wallet Alpha" [fillcolor="#ffe6b3", label="Mule Wallet Alpha\\n(Flagged IP)"];
+            "Mule Wallet Alpha"     [fillcolor="#ffe6b3", label="Mule Wallet Alpha\\n(Flagged IP)"];
             "Trusted Merchant Account" [fillcolor="#d1e7dd", label="Trusted Portal\\n(Verified KYC)"];
-            "Offshore Asset Mixer" [fillcolor="#f8d7da", color="#dc3545", label="Offshore Mixer\\n(Blacklisted Address)"];
-            
-            "Target Transaction ID" -> "Mule Wallet Alpha" [label="Rapid Split-Layering"];
+            "Offshore Asset Mixer"  [fillcolor="#f8d7da", color="#dc3545", label="Offshore Mixer\\n(Blacklisted Address)"];
+
+            "Target Transaction ID" -> "Mule Wallet Alpha"        [label="Rapid Split-Layering"];
             "Target Transaction ID" -> "Trusted Merchant Account" [label="Valid Check"];
-            "Mule Wallet Alpha" -> "Offshore Asset Mixer" [color="#dc3545", style=bold, label="Exfiltration Pathway"];
+            "Mule Wallet Alpha"     -> "Offshore Asset Mixer"     [color="#dc3545", style=bold, label="Exfiltration Pathway"];
         }
         ''')
-        
+
         update_risk_profile(
             score=84,
             level="HIGH",
@@ -411,59 +471,62 @@ if st.button("Predict Fraud"):
     elif menu_option == "🤖 AI Chatbot":
         st.subheader("🤖 Cognitive Fraud Insights Assistant")
         st.write("Understand AI threat logic, receive explanation of variables, or request defensive next steps.")
-        
-        # Chat log render loop
+
         for chat in st.session_state.chat_history:
             with st.chat_message(chat["role"]):
                 st.write(chat["content"])
-                
+
         user_input = st.chat_input("Ask how risk parameters are calculated...")
-        
+
         if user_input:
-            # Append query
             st.session_state.chat_history.append({"role": "user", "content": user_input})
             with st.chat_message("user"):
                 st.write(user_input)
-                
-            # Simulate analytical system generation
+
             with st.spinner("AI analyzing profile conditions..."):
                 time.sleep(0.7)
-                
-            # Informative response
-            ai_response = f"Analyzing your query relative to active parameters (Risk Score: {st.session_state.risk_score}%, Risk Level: {st.session_state.risk_level}). This threat rating is primarily driven by: {', '.join(st.session_state.risk_factors)}. To secure this path, I advise isolating the destination address and executing immediate transaction rollbacks."
+
+            ai_response = (
+                f"Analyzing your query relative to active parameters "
+                f"(Risk Score: {st.session_state.risk_score}%, "
+                f"Risk Level: {st.session_state.risk_level}). "
+                f"This threat rating is primarily driven by: "
+                f"{', '.join(st.session_state.risk_factors)}. "
+                f"To secure this path, I advise isolating the destination address "
+                f"and executing immediate transaction rollbacks."
+            )
             st.session_state.chat_history.append({"role": "assistant", "content": ai_response})
             with st.chat_message("assistant"):
                 st.write(ai_response)
 
 # --------------------------------------------------------
-# RENDERING THE CONTINUOUS RIGHT PANEL RISK RADAR
+# RIGHT PANEL — REAL-TIME RISK RADAR
 # --------------------------------------------------------
 with right_col:
     st.markdown('<div class="risk-card">', unsafe_allow_html=True)
     st.subheader("🛡️ Real-Time Risk Radar")
-    st.write("Evaluations adjust automatically dynamically based on live workspace interactions.")
-    
-    # Calculate gauge bar color based on level
-    bar_color = "#2ecc71"  # green
+    st.write("Evaluations adjust automatically based on live workspace interactions.")
+
+    bar_color = "#2ecc71"
     if st.session_state.risk_level == "MEDIUM":
-        bar_color = "#f1c40f"  # yellow
+        bar_color = "#f1c40f"
     elif st.session_state.risk_level == "HIGH":
-        bar_color = "#e74c3c"  # red
-        
+        bar_color = "#e74c3c"
+
     fig = go.Figure(go.Indicator(
         mode="gauge+number",
         value=st.session_state.risk_score,
         domain={'x': [0, 1], 'y': [0, 1]},
         gauge={
             'axis': {'range': [0, 100], 'tickwidth': 1, 'tickcolor': "#475569"},
-            'bar': {'color': bar_color},
+            'bar':  {'color': bar_color},
             'bgcolor': "#e2e8f0",
             'borderwidth': 1,
             'bordercolor': "#cbd5e1",
             'steps': [
-                {'range': [0, 35], 'color': '#f1f5f9'},
+                {'range': [0,  35], 'color': '#f1f5f9'},
                 {'range': [35, 70], 'color': '#fef3c7'},
-                {'range': [70, 100], 'color': '#fee2e2'}
+                {'range': [70,100], 'color': '#fee2e2'}
             ],
         }
     ))
@@ -474,19 +537,19 @@ with right_col:
         plot_bgcolor='rgba(0,0,0,0)'
     )
     st.plotly_chart(fig, use_container_width=True)
-    
-    # Status level badge
+
     level_color_map = {"LOW": "#d1e7dd", "MEDIUM": "#fff3cd", "HIGH": "#f8d7da"}
-    text_color_map = {"LOW": "#0f5132", "MEDIUM": "#664d03", "HIGH": "#842029"}
+    text_color_map  = {"LOW": "#0f5132", "MEDIUM": "#664d03", "HIGH": "#842029"}
     st.markdown(f"""
-        <div style="text-align: center; background-color: {level_color_map[st.session_state.risk_level]}; color: {text_color_map[st.session_state.risk_level]}; padding: 8px; border-radius: 8px; font-weight: bold; font-size: 1.1rem; margin-bottom: 20px;">
+        <div style="text-align:center; background-color:{level_color_map[st.session_state.risk_level]};
+                    color:{text_color_map[st.session_state.risk_level]}; padding:8px; border-radius:8px;
+                    font-weight:bold; font-size:1.1rem; margin-bottom:20px;">
             RISK ASSESSMENT: {st.session_state.risk_level}
         </div>
     """, unsafe_allow_html=True)
-    
-    # Active threat factors
+
     st.markdown("##### 🔬 Threat Vector Factors:")
     for idx, factor in enumerate(st.session_state.risk_factors, 1):
         st.markdown(f"**{idx}.** {factor}")
-        
+
     st.markdown('</div>', unsafe_allow_html=True)
