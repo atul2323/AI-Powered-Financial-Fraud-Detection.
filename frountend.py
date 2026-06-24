@@ -5,8 +5,7 @@ import matplotlib.pyplot as plt
 
 # ---------------- PAGE CONFIG ----------------
 st.set_page_config(
-    page_title="AI-PoweredFinancial Fraud-Detection
-",
+    page_title="AI Fraud Detection",
     page_icon="🛡️",
     layout="wide"
 )
