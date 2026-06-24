@@ -153,51 +153,109 @@ with main_col:
     # 2. Normal Transaction Detection
     # --------------------------------------------------------
     elif menu_option == "💳 Normal Transaction Detection":
-        st.subheader("💳 Fiat Transaction Analyzer")
-        st.write("Scan physical or fiat ledger transfer parameters via multi-vector anomaly engines.")
-        
-        with st.form("transaction_form"):
-            sender = st.text_input("Sender Account VPA or Number", placeholder="e.g., ACC-778103")
-            receiver = st.text_input("Receiver Account VPA or Number", placeholder="e.g., ACC-114256")
-            amount = st.number_input("Transaction Volume ($ USD)", min_value=0.0, step=100.0, format="%.2f")
-            tx_type = st.selectbox("Routing Layer Engine", ["WIRE TRANSFER", "MERCHANT PAY", "P2P CASH-OUT", "DEBIT DIRECT"])
-            
-            submit = st.form_submit_with_button("Analyze Transaction")
-            
-            if submit:
-                with st.spinner("Calculating threat parameters..."):
-                    time.sleep(0.6)
-                if amount > 15000:
-                    update_risk_profile(
-                        score=88,
-                        level="HIGH",
-                        factors=[
-                            "Transaction volume exceeds typical historic baseline by 400%.",
-                            "Unusual high-liquidity destination routing layer selected.",
-                            "Suspicious immediate cash-out route signature."
-                        ]
-                    )
-                    st.error("🚨 Highly High-Risk parameters detected! Transaction held.")
-                elif amount > 5000:
-                    update_risk_profile(
-                        score=54,
-                        level="MEDIUM",
-                        factors=[
-                            "Intermediary tier transfer parameters detected.",
-                            "Routing velocity profile is elevated for this hour."
-                        ]
-                    )
-                    st.warning("⚠️ Medium risk score registered. Secondary authorization recommended.")
-                else:
-                    update_risk_profile(
-                        score=14,
-                        level="LOW",
-                        factors=[
-                            "Standard secure transfer size parameters.",
-                            "Trusted transfer destination with no negative history."
-                        ]
-                    )
-                    st.success("✅ Clean baseline signatures. Transaction cleared!")
+        # User Inputs
+amount = st.number_input("Amount", min_value=0.0)
+
+transaction_type = st.selectbox(
+    "Transaction Type",
+    ["ATM", "POS", "Online", "QR"]
+)
+
+merchant_category = st.selectbox(
+    "Merchant Category",
+    [
+        "Food",
+        "Travel",
+        "Electronics",
+        "Grocery"
+    ]
+)
+country = st.selectbox(
+    "Country",
+    ["US", "UK", "FR", "NG", "TR"]
+)
+
+hour = st.slider(
+    "Transaction Hour",
+    0,
+    23,
+    12
+)
+
+# Auto-generated risk scores
+risk_profile = st.selectbox(
+    "Risk Profile",
+    [
+        "Low Risk",
+        "Medium Risk",
+        "High Risk"
+    ]
+)
+
+if risk_profile == "Low Risk":
+    device_risk_score = 0.15
+    ip_risk_score = 0.10
+
+elif risk_profile == "Medium Risk":
+    device_risk_score = 0.50
+    ip_risk_score = 0.45
+
+else:
+    device_risk_score = 0.95
+    ip_risk_score = 0.90
+if st.button("Predict Fraud"):
+
+    # Create input dictionary
+    input_data = {}
+
+    # Initialize all features to 0
+    for col in feature_names:
+        input_data[col] = 0
+
+    # Numerical Features
+    if "amount" in feature_names:
+        input_data["amount"] = amount
+
+    if "hour" in feature_names:
+        input_data["hour"] = hour
+
+    if "device_risk_score" in feature_names:
+        input_data["device_risk_score"] = device_risk_score
+
+    if "ip_risk_score" in feature_names:
+        input_data["ip_risk_score"] = ip_risk_score
+
+    # Dummy Columns
+    transaction_col = f"transaction_type_{transaction_type}"
+    merchant_col = f"merchant_category_{merchant_category}"
+    country_col = f"country_{country}"
+
+    if transaction_col in feature_names:
+        input_data[transaction_col] = 1
+
+    if merchant_col in feature_names:
+        input_data[merchant_col] = 1
+
+    if country_col in feature_names:
+        input_data[country_col] = 1
+
+    # Create dataframe
+    input_df = pd.DataFrame([input_data])
+
+    # Prediction
+    prediction = model.predict(input_df)[0]
+
+    probability = model.predict_proba(input_df)[0][1]
+
+    # Display result
+    if prediction == 1:
+        st.error(
+            f"⚠️ Fraud Detected\n\nProbability: {probability:.2%}"
+        )
+    else:
+        st.success(
+            f"✅ Legitimate Transaction\n\nProbability: {probability:.2%}"
+        )
 
     # --------------------------------------------------------
     # 3. QR Code Detection
