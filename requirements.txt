@@ -1,0 +1,14 @@
+streamlit
+pandas
+numpy
+scikit-learn
+joblib
+plotly
+networkx
+matplotlib
+seaborn
+pillow
+pyzbar
+openpyxl
+google-genai
+python-dotenv
