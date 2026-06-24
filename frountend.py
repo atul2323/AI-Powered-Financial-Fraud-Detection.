@@ -227,23 +227,17 @@ with left:
         )
 
     # CHATBOT
+    from aichatbot import chatbot_response
+
     elif feature == "🤖 AI Chatbot":
 
-        st.header("🤖 AI Fraud Assistant")
-
-        user_query = st.text_input(
-            "Ask Anything About Fraud Detection"
-        )
+    user_query = st.text_input("Ask Anything")
 
         if st.button("Send"):
 
-            st.info(
-                f"You Asked: {user_query}"
-            )
+            response = chatbot_response(user_query)
 
-            st.success(
-                "Connect your Gemini/OpenAI model here."
-            )
+            st.write(response)
 
 # ---------------- FOOTER ----------------
 st.markdown("---")
