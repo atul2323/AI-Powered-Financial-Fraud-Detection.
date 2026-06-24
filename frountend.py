@@ -229,7 +229,7 @@ with left:
     # CHATBOT
     from aichatbot import chatbot_response
 
-    elif feature == "🤖 AI Chatbot":
+    if feature == "🤖 AI Chatbot":
 
     user_query = st.text_input("Ask Anything")
 
