@@ -17,167 +17,172 @@ st.set_page_config(
 )
 
 # ==========================================================
-# DESIGN SYSTEM — fonts, color tokens, component styles
+# DESIGN SYSTEM
 # ==========================================================
 st.markdown("""
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
     :root{
-        --ink-950:#0a0e16;
-        --ink-900:#10151f;
-        --ink-800:#161d2b;
-        --ink-700:#1e2738;
-        --ink-600:#2a3548;
-        --line:#243044;
-        --text-hi:#eef2f8;
-        --text-mid:#9aa7bd;
-        --text-low:#5e6b82;
-        --accent:#3dd6c4;
-        --accent-dim:#1e8b7e;
-        --warn:#f5b84e;
-        --danger:#ef5d6f;
-        --ok:#3dd6c4;
-        --radius:14px;
+        --ink-950:#0a0e16; --ink-900:#10151f; --ink-800:#161d2b;
+        --ink-700:#1e2738; --ink-600:#2a3548; --line:#243044;
+        --text-hi:#eef2f8; --text-mid:#9aa7bd; --text-low:#5e6b82;
+        --accent:#3dd6c4; --accent-dim:#1e8b7e; --violet:#a78bfa;
+        --warn:#f5b84e; --danger:#ef5d6f; --ok:#3dd6c4; --radius:14px;
     }
-
-    html, body, [class*="css"]{
-        font-family:'Inter', -apple-system, sans-serif;
-    }
-
+    html, body, [class*="css"]{ font-family:'Inter', -apple-system, sans-serif; }
     .stApp{
         background:
             radial-gradient(900px 500px at 85% -10%, rgba(61,214,196,0.07), transparent 60%),
+            radial-gradient(700px 450px at 5% 10%, rgba(167,139,250,0.05), transparent 60%),
             var(--ink-950);
     }
-
-    .block-container{
-        padding-top:1.2rem;
-        padding-bottom:2rem;
-        max-width:1500px;
-    }
-
-    section[data-testid="stSidebar"]{
-        background:var(--ink-900);
-        border-right:1px solid var(--line);
-    }
+    .block-container{ padding-top:1.2rem; padding-bottom:2rem; max-width:1500px; }
+    section[data-testid="stSidebar"]{ background:var(--ink-900); border-right:1px solid var(--line); }
     section[data-testid="stSidebar"] .block-container{ padding-top:1.6rem; }
 
-    /* ---- top bar / brand header ---- */
+    /* ---- top bar ---- */
     .topbar{
-        font-family:'Inter',sans-serif;
         background:linear-gradient(180deg, var(--ink-800) 0%, var(--ink-900) 100%);
-        border:1px solid var(--line);
-        border-radius:var(--radius);
-        padding:18px 26px;
-        margin-bottom:22px;
-        display:flex;
-        justify-content:space-between;
-        align-items:center;
+        border:1px solid var(--line); border-radius:var(--radius);
+        padding:18px 26px; margin-bottom:22px;
+        display:flex; justify-content:space-between; align-items:center;
     }
     .brand-mark{
         width:42px;height:42px;border-radius:10px;
         background:linear-gradient(135deg, var(--accent), var(--accent-dim));
         display:flex;align-items:center;justify-content:center;
-        font-weight:800;font-size:1.1rem;color:#06231f;
-        flex-shrink:0;
+        font-weight:800;font-size:1.1rem;color:#06231f; flex-shrink:0;
     }
-    .brand-name{
-        margin:0;color:var(--text-hi);font-size:1.32rem;font-weight:800;letter-spacing:-0.01em;
-    }
-    .brand-sub{
-        margin:0;color:var(--text-low);font-size:0.78rem;font-family:'JetBrains Mono',monospace;
-        letter-spacing:0.02em;
-    }
+    .brand-name{ margin:0;color:var(--text-hi);font-size:1.32rem;font-weight:800;letter-spacing:-0.01em; }
+    .brand-sub{ margin:0;color:var(--text-low);font-size:0.78rem;font-family:'JetBrains Mono',monospace; }
     .pill{
         font-family:'JetBrains Mono',monospace;font-size:0.72rem;font-weight:600;
-        padding:6px 12px;border-radius:30px;letter-spacing:0.03em;
+        padding:6px 12px;border-radius:30px;
         background:rgba(61,214,196,0.1); color:var(--accent); border:1px solid rgba(61,214,196,0.25);
     }
-    .clock{
-        font-family:'JetBrains Mono',monospace;color:var(--text-mid);font-size:0.78rem;
+    .clock{ font-family:'JetBrains Mono',monospace;color:var(--text-mid);font-size:0.78rem; }
+
+    /* ---- hero / animated title for Overview ---- */
+    .hero-wrap{
+        position:relative; text-align:center; padding:50px 20px 40px 20px;
+        border:1px solid var(--line); border-radius:18px; margin-bottom:24px; overflow:hidden;
+        background:linear-gradient(180deg, var(--ink-800), var(--ink-900));
     }
+    .hero-glow{
+        position:absolute; inset:0;
+        background: radial-gradient(420px 220px at 50% 0%, rgba(61,214,196,0.18), transparent 70%);
+        pointer-events:none;
+        animation: pulseGlow 4s ease-in-out infinite;
+    }
+    @keyframes pulseGlow{
+        0%,100%{ opacity:0.6; } 50%{ opacity:1; }
+    }
+    .hero-kicker{
+        font-family:'JetBrains Mono',monospace; color:var(--accent);
+        font-size:0.78rem; letter-spacing:0.25em; text-transform:uppercase;
+        margin-bottom:14px; position:relative;
+        animation: fadeDown 0.7s ease both;
+    }
+    .hero-title{
+        position:relative; font-weight:900; line-height:1.08; margin:0 auto;
+        max-width:920px; letter-spacing:-0.02em;
+        font-size:clamp(1.6rem, 4.2vw, 3.1rem);
+        background:linear-gradient(100deg, #ffffff 10%, var(--accent) 45%, var(--violet) 75%, #ffffff 100%);
+        background-size:300% auto;
+        -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+        animation: shimmer 6s linear infinite, popIn 0.6s cubic-bezier(.2,1.4,.4,1) both;
+    }
+    @keyframes shimmer{ to{ background-position: 300% center; } }
+    @keyframes popIn{
+        0%{ transform:scale(0.85); opacity:0; }
+        60%{ transform:scale(1.04); opacity:1; }
+        100%{ transform:scale(1); }
+    }
+    @keyframes fadeDown{
+        0%{ transform:translateY(-10px); opacity:0; } 100%{ transform:translateY(0); opacity:1; }
+    }
+    .hero-sub{
+        position:relative; color:var(--text-mid); font-size:0.98rem; margin-top:14px;
+        animation: fadeUp 0.9s ease both 0.15s;
+    }
+    @keyframes fadeUp{
+        0%{ transform:translateY(10px); opacity:0; } 100%{ transform:translateY(0); opacity:1; }
+    }
+    .hero-tags{ position:relative; display:flex; gap:10px; justify-content:center; margin-top:20px; flex-wrap:wrap; }
+    .hero-tag{
+        font-family:'JetBrains Mono',monospace; font-size:0.72rem; font-weight:600;
+        padding:6px 14px; border-radius:30px; color:var(--text-hi);
+        background:var(--ink-700); border:1px solid var(--line);
+        animation: floaty 3.5s ease-in-out infinite;
+    }
+    .hero-tag:nth-child(2){ animation-delay:0.3s; }
+    .hero-tag:nth-child(3){ animation-delay:0.6s; }
+    .hero-tag:nth-child(4){ animation-delay:0.9s; }
+    @keyframes floaty{ 0%,100%{ transform:translateY(0);} 50%{ transform:translateY(-4px);} }
 
     /* ---- generic surface card ---- */
-    .card{
-        background:var(--ink-800);
-        border:1px solid var(--line);
-        border-radius:var(--radius);
-        padding:20px 22px;
-    }
+    .card{ background:var(--ink-800); border:1px solid var(--line); border-radius:var(--radius); padding:20px 22px; }
     .card-tight{ padding:14px 16px; }
-
     .section-eyebrow{
-        font-family:'JetBrains Mono',monospace;
-        color:var(--accent); font-size:0.72rem; font-weight:600;
+        font-family:'JetBrains Mono',monospace; color:var(--accent); font-size:0.72rem; font-weight:600;
         letter-spacing:0.08em; text-transform:uppercase; margin-bottom:2px;
     }
-    .section-title{
-        color:var(--text-hi); font-size:1.18rem; font-weight:700; margin:0 0 4px 0;
-    }
+    .section-title{ color:var(--text-hi); font-size:1.18rem; font-weight:700; margin:0 0 4px 0; }
     .section-desc{ color:var(--text-mid); font-size:0.88rem; margin-bottom:14px; }
 
     /* ---- metrics ---- */
-    div[data-testid="stMetric"]{
-        background:var(--ink-800);
-        border:1px solid var(--line);
-        border-radius:var(--radius);
-        padding:16px 18px 12px 18px;
-    }
+    div[data-testid="stMetric"]{ background:var(--ink-800); border:1px solid var(--line); border-radius:var(--radius); padding:16px 18px 12px 18px; }
     div[data-testid="stMetricLabel"]{ color:var(--text-mid) !important; font-size:0.78rem !important; }
     div[data-testid="stMetricValue"]{
         font-size:1.7rem !important; font-weight:700 !important; color:var(--text-hi) !important;
         font-family:'JetBrains Mono',monospace;
     }
 
-    /* ---- risk level badge ---- */
+    /* ---- risk badge / factors ---- */
     .risk-badge{
-        text-align:center; padding:11px; border-radius:10px;
-        font-weight:700; font-size:1.0rem; letter-spacing:0.04em;
-        font-family:'JetBrains Mono',monospace;
-        margin-bottom:18px; border:1px solid;
+        text-align:center; padding:11px; border-radius:10px; font-weight:700; font-size:1.0rem;
+        letter-spacing:0.04em; font-family:'JetBrains Mono',monospace; margin-bottom:18px; border:1px solid;
     }
     .risk-low{ background:rgba(61,214,196,0.08); color:var(--accent); border-color:rgba(61,214,196,0.3);}
     .risk-medium{ background:rgba(245,184,78,0.1); color:var(--warn); border-color:rgba(245,184,78,0.3);}
     .risk-high{ background:rgba(239,93,111,0.1); color:var(--danger); border-color:rgba(239,93,111,0.35);}
-
-    .factor-row{
-        display:flex; gap:10px; padding:9px 0; border-bottom:1px solid var(--line);
-        font-size:0.85rem; color:var(--text-mid);
-    }
+    .factor-row{ display:flex; gap:10px; padding:9px 0; border-bottom:1px solid var(--line); font-size:0.85rem; color:var(--text-mid); }
     .factor-row:last-child{ border-bottom:none; }
-    .factor-idx{
-        font-family:'JetBrains Mono',monospace; color:var(--accent); font-weight:700;
-        flex-shrink:0; width:18px;
-    }
+    .factor-idx{ font-family:'JetBrains Mono',monospace; color:var(--accent); font-weight:700; flex-shrink:0; width:18px; }
 
-    /* ---- buttons ---- */
+    /* ---- buttons / inputs ---- */
     .stButton > button{
         background:linear-gradient(135deg, var(--accent), var(--accent-dim));
-        color:#06231f; border:none; font-weight:700; border-radius:9px;
-        padding:0.55rem 1rem; letter-spacing:0.01em;
+        color:#06231f; border:none; font-weight:700; border-radius:9px; padding:0.55rem 1rem;
     }
     .stButton > button:hover{ filter:brightness(1.08); color:#06231f; }
-
-    /* ---- inputs ---- */
     .stTextInput input, .stNumberInput input, div[data-baseweb="select"] > div{
         background:var(--ink-700) !important; border:1px solid var(--line) !important;
         color:var(--text-hi) !important; border-radius:8px !important;
     }
-
-    /* ---- sidebar nav label ---- */
-    .nav-label{
-        font-family:'JetBrains Mono',monospace; color:var(--text-low);
-        font-size:0.7rem; letter-spacing:0.1em; text-transform:uppercase;
-        margin:6px 0 8px 4px;
-    }
-
-    .footer-note{
-        text-align:center; color:var(--text-low); font-size:0.72rem;
-        font-family:'JetBrains Mono',monospace; margin-top:28px;
-    }
-
+    .nav-label{ font-family:'JetBrains Mono',monospace; color:var(--text-low); font-size:0.7rem; letter-spacing:0.1em; text-transform:uppercase; margin:6px 0 8px 4px; }
+    .footer-note{ text-align:center; color:var(--text-low); font-size:0.72rem; font-family:'JetBrains Mono',monospace; margin-top:28px; }
     hr{ border-color:var(--line) !important; }
+
+    /* ---- AI analyst dock (present on every tab) ---- */
+    .analyst-head{
+        display:flex; align-items:center; gap:10px; margin-bottom:2px;
+    }
+    .analyst-avatar{
+        width:30px;height:30px;border-radius:8px; flex-shrink:0;
+        background:linear-gradient(135deg, var(--violet), var(--accent));
+        display:flex;align-items:center;justify-content:center; font-size:0.85rem;
+    }
+    .analyst-pulse{
+        width:7px;height:7px;border-radius:50%; background:var(--accent); display:inline-block;
+        box-shadow:0 0 0 0 rgba(61,214,196,0.6); animation:pulseDot 1.8s infinite;
+    }
+    @keyframes pulseDot{
+        0%{ box-shadow:0 0 0 0 rgba(61,214,196,0.55);}
+        70%{ box-shadow:0 0 0 8px rgba(61,214,196,0);}
+        100%{ box-shadow:0 0 0 0 rgba(61,214,196,0);}
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -236,11 +241,15 @@ defaults = {
         "Device fingerprint verified — matches typical user device profile.",
         "IP routing verification shows a stable geolocation footprint."
     ],
-    "chat_history": [
-        {"role": "assistant", "content": "Hello — I'm Sentinel's AI Fraud Analyst. Ask me to explain a risk profile, a suspicious connection, or a UPI anomaly model."}
-    ],
     "scan_count": 148930,
     "flag_count": 42,
+    # one chat thread per module, so the analyst has context-relevant history everywhere
+    "chat_overview": [{"role": "assistant", "content": "Hi — I'm watching platform-wide telemetry. Ask me about today's incident volume or flagged vectors."}],
+    "chat_txn":      [{"role": "assistant", "content": "Ask me to explain the transaction scoring model or the last prediction."}],
+    "chat_qr":       [{"role": "assistant", "content": "Ask me about QR payload risks or shortener red flags."}],
+    "chat_site":     [{"role": "assistant", "content": "Ask me about domain reputation signals or typo-squatting patterns."}],
+    "chat_upi":      [{"role": "assistant", "content": "Ask me about UPI/VPA spam signals or mule-account indicators."}],
+    "chat_network":  [{"role": "assistant", "content": "Ask me to walk through the fraud network graph and likely exit paths."}],
 }
 for k, v in defaults.items():
     if k not in st.session_state:
@@ -250,6 +259,43 @@ def update_risk_profile(score, level, factors):
     st.session_state.risk_score = score
     st.session_state.risk_level = level
     st.session_state.risk_factors = factors
+
+def render_ai_analyst(chat_key, placeholder, context_line):
+    """Renders a persistent AI Analyst dock — used identically on every tab."""
+    st.markdown("<br>", unsafe_allow_html=True)
+    with st.expander("🧠  AI Analyst — ask about this module", expanded=False):
+        st.markdown(f"""
+        <div class="analyst-head">
+            <div class="analyst-avatar">🤖</div>
+            <div>
+                <div style="color:var(--text-hi); font-weight:700; font-size:0.88rem;">Sentinel Analyst <span class="analyst-pulse"></span></div>
+                <div style="color:var(--text-low); font-size:0.74rem; font-family:'JetBrains Mono',monospace;">{context_line}</div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        for chat in st.session_state[chat_key]:
+            with st.chat_message(chat["role"]):
+                st.write(chat["content"])
+
+        user_input = st.chat_input(placeholder, key=f"input_{chat_key}")
+        if user_input:
+            st.session_state[chat_key].append({"role": "user", "content": user_input})
+            with st.chat_message("user"):
+                st.write(user_input)
+            with st.spinner("Analyzing..."):
+                time.sleep(0.5)
+            ai_response = (
+                f"Based on the current risk profile (score {st.session_state.risk_score}%, "
+                f"level {st.session_state.risk_level}), here's what stands out: "
+                f"{' '.join(st.session_state.risk_factors)} "
+                f"In the context of this module, I'd recommend cross-checking the flagged "
+                f"attributes against your historical baseline before taking action."
+            )
+            st.session_state[chat_key].append({"role": "assistant", "content": ai_response})
+            with st.chat_message("assistant"):
+                st.write(ai_response)
 
 # ==========================================================
 # TOP BAR
@@ -283,7 +329,6 @@ menu_option = st.sidebar.radio(
         "Website Reputation Check",
         "UPI / VPA Lookup",
         "Network Analysis",
-        "AI Analyst Chat",
     ],
     label_visibility="collapsed"
 )
@@ -296,7 +341,7 @@ st.sidebar.markdown("""
         <span>Model engine</span><span style="color:#eef2f8; font-family:'JetBrains Mono',monospace;">v2.5-rf</span>
     </div>
     <div style="display:flex; justify-content:space-between; font-size:0.82rem; color:#9aa7bd; margin-top:6px;">
-        <span>Last sync</span><span style="color:#eef2f8; font-family:'JetBrains Mono',monospace;">just now</span>
+        <span>AI analyst</span><span style="color:#3dd6c4; font-family:'JetBrains Mono',monospace;">on every tab</span>
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -311,9 +356,20 @@ with main_col:
 
     # ---------------- Overview ----------------
     if menu_option == "Overview":
-        st.markdown('<p class="section-eyebrow">Live telemetry</p>', unsafe_allow_html=True)
-        st.markdown('<p class="section-title">Platform Overview</p>', unsafe_allow_html=True)
-        st.markdown('<p class="section-desc">Aggregate scan volume and flagged-vector activity across all detection modules.</p>', unsafe_allow_html=True)
+        st.markdown("""
+        <div class="hero-wrap">
+            <div class="hero-glow"></div>
+            <div class="hero-kicker">◆ Welcome to Sentinel ◆</div>
+            <h1 class="hero-title">AI&#8209;Powered Financial<br/>Fraud Detection</h1>
+            <p class="hero-sub">Real-time transaction scoring, QR &amp; URL forensics, UPI reputation checks, and network tracing — backed by an AI analyst on every screen.</p>
+            <div class="hero-tags">
+                <span class="hero-tag">🧠 AI Analyst Everywhere</span>
+                <span class="hero-tag">⚡ 48ms Inference</span>
+                <span class="hero-tag">🛰️ Live Risk Radar</span>
+                <span class="hero-tag">🕸️ Network Tracing</span>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
         m1, m2, m3 = st.columns(3)
         m1.metric("Transactions scanned", f"{st.session_state.scan_count:,}", "+14% vs yesterday")
@@ -330,13 +386,11 @@ with main_col:
             {"Time": "14:02:49", "Vector": "QR exploitation",    "Target": "Mule VPA redirect",               "Risk": 71, "Action": "User alerted"},
         ])
         st.dataframe(
-            incidents,
-            use_container_width=True,
-            hide_index=True,
-            column_config={
-                "Risk": st.column_config.ProgressColumn("Risk", min_value=0, max_value=100, format="%d%%"),
-            },
+            incidents, use_container_width=True, hide_index=True,
+            column_config={"Risk": st.column_config.ProgressColumn("Risk", min_value=0, max_value=100, format="%d%%")},
         )
+
+        render_ai_analyst("chat_overview", "Ask about platform-wide activity...", "context: platform overview")
 
     # ---------------- Transaction Risk Scoring ----------------
     elif menu_option == "Transaction Risk Scoring":
@@ -344,28 +398,21 @@ with main_col:
         st.markdown('<p class="section-title">Transaction Risk Scoring</p>', unsafe_allow_html=True)
         st.markdown('<p class="section-desc">Score a single transaction in real time using the trained ensemble model.</p>', unsafe_allow_html=True)
 
-        with st.container():
-            c1, c2 = st.columns(2)
-            with c1:
-                amount = st.number_input("Amount (₹)", min_value=0.0, value=500.0, step=50.0)
-                transaction_type = st.selectbox("Transaction type", ["ATM", "POS", "Online", "QR"])
-                merchant_category = st.selectbox("Merchant category", ["Food", "Travel", "Electronics", "Grocery"])
-            with c2:
-                country = st.selectbox("Country", ["US", "UK", "FR", "NG", "TR"])
-                hour = st.slider("Transaction hour (24h)", 0, 23, 12)
-                risk_profile = st.selectbox("Simulated risk profile", ["Low Risk", "Medium Risk", "High Risk"])
+        c1, c2 = st.columns(2)
+        with c1:
+            amount = st.number_input("Amount (₹)", min_value=0.0, value=500.0, step=50.0)
+            transaction_type = st.selectbox("Transaction type", ["ATM", "POS", "Online", "QR"])
+            merchant_category = st.selectbox("Merchant category", ["Food", "Travel", "Electronics", "Grocery"])
+        with c2:
+            country = st.selectbox("Country", ["US", "UK", "FR", "NG", "TR"])
+            hour = st.slider("Transaction hour (24h)", 0, 23, 12)
+            risk_profile = st.selectbox("Simulated risk profile", ["Low Risk", "Medium Risk", "High Risk"])
 
-        risk_map = {
-            "Low Risk":    (0.15, 0.10),
-            "Medium Risk": (0.50, 0.45),
-            "High Risk":   (0.95, 0.90),
-        }
+        risk_map = {"Low Risk": (0.15, 0.10), "Medium Risk": (0.50, 0.45), "High Risk": (0.95, 0.90)}
         device_risk_score, ip_risk_score = risk_map[risk_profile]
 
         st.markdown("<br>", unsafe_allow_html=True)
-        run = st.button("Run fraud prediction", use_container_width=True)
-
-        if run:
+        if st.button("Run fraud prediction", use_container_width=True):
             with st.spinner("Running inference pipeline..."):
                 time.sleep(0.5)
 
@@ -374,11 +421,7 @@ with main_col:
             input_data["hour"]              = hour
             input_data["device_risk_score"] = device_risk_score
             input_data["ip_risk_score"]     = ip_risk_score
-            for col_key in [
-                f"transaction_type_{transaction_type}",
-                f"merchant_category_{merchant_category}",
-                f"country_{country}",
-            ]:
+            for col_key in [f"transaction_type_{transaction_type}", f"merchant_category_{merchant_category}", f"country_{country}"]:
                 if col_key in input_data:
                     input_data[col_key] = 1
 
@@ -411,19 +454,16 @@ with main_col:
             top_idx   = np.argsort(importances)[::-1][:6]
             top_feats = [feature_names[i] for i in top_idx]
             top_vals  = [importances[i] for i in top_idx]
-
-            fig_bar = go.Figure(go.Bar(
-                x=top_vals[::-1], y=top_feats[::-1], orientation="h",
-                marker_color="#3dd6c4",
-            ))
+            fig_bar = go.Figure(go.Bar(x=top_vals[::-1], y=top_feats[::-1], orientation="h", marker_color="#3dd6c4"))
             fig_bar.update_layout(
                 height=230, margin=dict(l=10, r=10, t=10, b=10),
                 paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
                 font=dict(color="#9aa7bd", family="Inter"),
-                xaxis=dict(gridcolor="#243044", title="Importance"),
-                yaxis=dict(gridcolor="#243044"),
+                xaxis=dict(gridcolor="#243044", title="Importance"), yaxis=dict(gridcolor="#243044"),
             )
             st.plotly_chart(fig_bar, use_container_width=True)
+
+        render_ai_analyst("chat_txn", "Ask about this transaction's score...", "context: transaction risk scoring")
 
     # ---------------- QR Code Inspection ----------------
     elif menu_option == "QR Code Inspection":
@@ -437,7 +477,6 @@ with main_col:
         if uploaded_file or raw_qr_data:
             with st.spinner("Extracting embedded metadata..."):
                 time.sleep(0.6)
-
             payload = raw_qr_data if raw_qr_data else "https://shorturl.at/xK98a-secure-verification"
             if any(k in payload for k in ["shorturl", "secure-verification", "bit.ly"]):
                 update_risk_profile(76, "HIGH", [
@@ -448,6 +487,8 @@ with main_col:
             else:
                 update_risk_profile(18, "LOW", ["QR string maps directly to a verified merchant gateway."])
                 st.success("QR signature looks secure.")
+
+        render_ai_analyst("chat_qr", "Ask about QR payload risks...", "context: QR code inspection")
 
     # ---------------- Website Reputation Check ----------------
     elif menu_option == "Website Reputation Check":
@@ -463,10 +504,8 @@ with main_col:
             else:
                 with st.spinner("Scanning DNS, WHOIS, and certificate trails..."):
                     time.sleep(0.8)
-
                 suspicious_keywords = ["secure", "bank", "login", "verification", "update", "paypal", "support"]
                 found_flags = [kw for kw in suspicious_keywords if kw in target_domain.lower()]
-
                 if len(found_flags) >= 2 or ".net" in target_domain or ".xyz" in target_domain:
                     update_risk_profile(91, "HIGH", [
                         f"Domain matches multiple typo-squatting keyphrases: {', '.join(found_flags) if found_flags else 'n/a'}.",
@@ -480,6 +519,8 @@ with main_col:
                         "Domain history exceeds 1,200 days.",
                     ])
                     st.success("Domain verified clean.")
+
+        render_ai_analyst("chat_site", "Ask about this domain's reputation...", "context: website reputation check")
 
     # ---------------- UPI / VPA Lookup ----------------
     elif menu_option == "UPI / VPA Lookup":
@@ -495,7 +536,6 @@ with main_col:
             else:
                 with st.spinner("Querying historical spam databases..."):
                     time.sleep(0.5)
-
                 if any(k in target_vpa.lower() for k in ["free", "spam", "cash"]):
                     update_risk_profile(69, "MEDIUM", [
                         "Handle reported across multiple independent spam-flag groups.",
@@ -509,6 +549,8 @@ with main_col:
                         "UPI velocity is within standard local brackets.",
                     ])
                     st.success("Account verified as safe.")
+
+        render_ai_analyst("chat_upi", "Ask about this UPI handle...", "context: UPI / VPA lookup")
 
     # ---------------- Network Analysis ----------------
     elif menu_option == "Network Analysis":
@@ -525,7 +567,6 @@ with main_col:
             "Mule Wallet Alpha"  [fillcolor="#f5b84e", label="Mule Wallet Alpha\\n(Flagged IP)"];
             "Trusted Merchant"   [fillcolor="#3dd6c4", label="Trusted Portal\\n(Verified KYC)"];
             "Offshore Mixer"     [fillcolor="#ef5d6f", label="Offshore Mixer\\n(Blacklisted Address)"];
-
             "Target Transaction" -> "Mule Wallet Alpha" [label="rapid split-layering"];
             "Target Transaction" -> "Trusted Merchant"  [label="valid check"];
             "Mule Wallet Alpha"  -> "Offshore Mixer"    [color="#ef5d6f", style=bold, label="exfiltration pathway"];
@@ -538,38 +579,10 @@ with main_col:
         ])
         st.info("Review the graph above to trace layering strategy and likely exit accounts.")
 
-    # ---------------- AI Analyst Chat ----------------
-    elif menu_option == "AI Analyst Chat":
-        st.markdown('<p class="section-eyebrow">Module 06</p>', unsafe_allow_html=True)
-        st.markdown('<p class="section-title">AI Analyst Chat</p>', unsafe_allow_html=True)
-        st.markdown('<p class="section-desc">Ask how the current risk score was derived, or request next steps.</p>', unsafe_allow_html=True)
-
-        for chat in st.session_state.chat_history:
-            with st.chat_message(chat["role"]):
-                st.write(chat["content"])
-
-        user_input = st.chat_input("Ask how risk parameters are calculated...")
-
-        if user_input:
-            st.session_state.chat_history.append({"role": "user", "content": user_input})
-            with st.chat_message("user"):
-                st.write(user_input)
-
-            with st.spinner("Analyzing profile conditions..."):
-                time.sleep(0.6)
-
-            ai_response = (
-                f"Based on current parameters (risk score {st.session_state.risk_score}%, "
-                f"level {st.session_state.risk_level}), the rating is primarily driven by: "
-                f"{' '.join(st.session_state.risk_factors)} "
-                f"Recommended action: isolate the destination address and prepare a transaction rollback."
-            )
-            st.session_state.chat_history.append({"role": "assistant", "content": ai_response})
-            with st.chat_message("assistant"):
-                st.write(ai_response)
+        render_ai_analyst("chat_network", "Ask about this network graph...", "context: network analysis")
 
 # ==========================================================
-# RIGHT PANEL — RISK RADAR
+# RIGHT PANEL — RISK RADAR (persistent across all tabs)
 # ==========================================================
 with right_col:
     st.markdown('<div class="card">', unsafe_allow_html=True)
@@ -578,7 +591,6 @@ with right_col:
     st.markdown('<p class="section-desc">Updates automatically as you interact with each module.</p>', unsafe_allow_html=True)
 
     bar_color = {"LOW": "#3dd6c4", "MEDIUM": "#f5b84e", "HIGH": "#ef5d6f"}[st.session_state.risk_level]
-
     fig = go.Figure(go.Indicator(
         mode="gauge+number",
         value=st.session_state.risk_score,
@@ -587,9 +599,7 @@ with right_col:
         gauge={
             'axis': {'range': [0, 100], 'tickwidth': 1, 'tickcolor': "#5e6b82", 'tickfont': {'color': '#5e6b82', 'size': 9}},
             'bar': {'color': bar_color, 'thickness': 0.28},
-            'bgcolor': "#161d2b",
-            'borderwidth': 1,
-            'bordercolor': "#243044",
+            'bgcolor': "#161d2b", 'borderwidth': 1, 'bordercolor': "#243044",
             'steps': [
                 {'range': [0, 35],  'color': 'rgba(61,214,196,0.08)'},
                 {'range': [35, 70], 'color': 'rgba(245,184,78,0.08)'},
@@ -597,10 +607,7 @@ with right_col:
             ],
         }
     ))
-    fig.update_layout(
-        height=210, margin=dict(l=15, r=15, t=10, b=10),
-        paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-    )
+    fig.update_layout(height=210, margin=dict(l=15, r=15, t=10, b=10), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
     st.plotly_chart(fig, use_container_width=True)
 
     badge_class = {"LOW": "risk-low", "MEDIUM": "risk-medium", "HIGH": "risk-high"}[st.session_state.risk_level]
@@ -612,7 +619,6 @@ with right_col:
         for i, f in enumerate(st.session_state.risk_factors, 1)
     )
     st.markdown(factors_html, unsafe_allow_html=True)
-
     st.markdown('</div>', unsafe_allow_html=True)
 
 st.markdown('<p class="footer-note">SENTINEL · DEMO BUILD — synthetic model, no live data connection</p>', unsafe_allow_html=True)
