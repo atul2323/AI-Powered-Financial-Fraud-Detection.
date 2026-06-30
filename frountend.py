@@ -3,60 +3,189 @@ import plotly.graph_objects as go
 import pandas as pd
 import numpy as np
 import time
+from datetime import datetime
 from sklearn.ensemble import RandomForestClassifier
 
-# --------------------------------------------------------
-# PAGE CONFIGURATION & THEME
-# --------------------------------------------------------
+# ==========================================================
+# PAGE CONFIGURATION
+# ==========================================================
 st.set_page_config(
-    page_title="AI-Powered Financial Fraud Detection",
-    page_icon="🛡️",
+    page_title="Sentinel | AI Fraud Intelligence Platform",
+    page_icon="◆",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
+# ==========================================================
+# DESIGN SYSTEM — fonts, color tokens, component styles
+# ==========================================================
 st.markdown("""
-    <style>
-        .block-container {
-            padding-top: 1rem;
-            padding-bottom: 1rem;
-        }
-        div[data-testid="stMetricValue"] {
-            font-size: 1.8rem;
-            font-weight: 700;
-        }
-        .main-header {
-            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-            padding: 15px 25px;
-            border-radius: 12px;
-            color: white;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 25px;
-            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-        }
-        .risk-card {
-            background-color: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
-        }
-    </style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+    :root{
+        --ink-950:#0a0e16;
+        --ink-900:#10151f;
+        --ink-800:#161d2b;
+        --ink-700:#1e2738;
+        --ink-600:#2a3548;
+        --line:#243044;
+        --text-hi:#eef2f8;
+        --text-mid:#9aa7bd;
+        --text-low:#5e6b82;
+        --accent:#3dd6c4;
+        --accent-dim:#1e8b7e;
+        --warn:#f5b84e;
+        --danger:#ef5d6f;
+        --ok:#3dd6c4;
+        --radius:14px;
+    }
+
+    html, body, [class*="css"]{
+        font-family:'Inter', -apple-system, sans-serif;
+    }
+
+    .stApp{
+        background:
+            radial-gradient(900px 500px at 85% -10%, rgba(61,214,196,0.07), transparent 60%),
+            var(--ink-950);
+    }
+
+    .block-container{
+        padding-top:1.2rem;
+        padding-bottom:2rem;
+        max-width:1500px;
+    }
+
+    section[data-testid="stSidebar"]{
+        background:var(--ink-900);
+        border-right:1px solid var(--line);
+    }
+    section[data-testid="stSidebar"] .block-container{ padding-top:1.6rem; }
+
+    /* ---- top bar / brand header ---- */
+    .topbar{
+        font-family:'Inter',sans-serif;
+        background:linear-gradient(180deg, var(--ink-800) 0%, var(--ink-900) 100%);
+        border:1px solid var(--line);
+        border-radius:var(--radius);
+        padding:18px 26px;
+        margin-bottom:22px;
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
+    }
+    .brand-mark{
+        width:42px;height:42px;border-radius:10px;
+        background:linear-gradient(135deg, var(--accent), var(--accent-dim));
+        display:flex;align-items:center;justify-content:center;
+        font-weight:800;font-size:1.1rem;color:#06231f;
+        flex-shrink:0;
+    }
+    .brand-name{
+        margin:0;color:var(--text-hi);font-size:1.32rem;font-weight:800;letter-spacing:-0.01em;
+    }
+    .brand-sub{
+        margin:0;color:var(--text-low);font-size:0.78rem;font-family:'JetBrains Mono',monospace;
+        letter-spacing:0.02em;
+    }
+    .pill{
+        font-family:'JetBrains Mono',monospace;font-size:0.72rem;font-weight:600;
+        padding:6px 12px;border-radius:30px;letter-spacing:0.03em;
+        background:rgba(61,214,196,0.1); color:var(--accent); border:1px solid rgba(61,214,196,0.25);
+    }
+    .clock{
+        font-family:'JetBrains Mono',monospace;color:var(--text-mid);font-size:0.78rem;
+    }
+
+    /* ---- generic surface card ---- */
+    .card{
+        background:var(--ink-800);
+        border:1px solid var(--line);
+        border-radius:var(--radius);
+        padding:20px 22px;
+    }
+    .card-tight{ padding:14px 16px; }
+
+    .section-eyebrow{
+        font-family:'JetBrains Mono',monospace;
+        color:var(--accent); font-size:0.72rem; font-weight:600;
+        letter-spacing:0.08em; text-transform:uppercase; margin-bottom:2px;
+    }
+    .section-title{
+        color:var(--text-hi); font-size:1.18rem; font-weight:700; margin:0 0 4px 0;
+    }
+    .section-desc{ color:var(--text-mid); font-size:0.88rem; margin-bottom:14px; }
+
+    /* ---- metrics ---- */
+    div[data-testid="stMetric"]{
+        background:var(--ink-800);
+        border:1px solid var(--line);
+        border-radius:var(--radius);
+        padding:16px 18px 12px 18px;
+    }
+    div[data-testid="stMetricLabel"]{ color:var(--text-mid) !important; font-size:0.78rem !important; }
+    div[data-testid="stMetricValue"]{
+        font-size:1.7rem !important; font-weight:700 !important; color:var(--text-hi) !important;
+        font-family:'JetBrains Mono',monospace;
+    }
+
+    /* ---- risk level badge ---- */
+    .risk-badge{
+        text-align:center; padding:11px; border-radius:10px;
+        font-weight:700; font-size:1.0rem; letter-spacing:0.04em;
+        font-family:'JetBrains Mono',monospace;
+        margin-bottom:18px; border:1px solid;
+    }
+    .risk-low{ background:rgba(61,214,196,0.08); color:var(--accent); border-color:rgba(61,214,196,0.3);}
+    .risk-medium{ background:rgba(245,184,78,0.1); color:var(--warn); border-color:rgba(245,184,78,0.3);}
+    .risk-high{ background:rgba(239,93,111,0.1); color:var(--danger); border-color:rgba(239,93,111,0.35);}
+
+    .factor-row{
+        display:flex; gap:10px; padding:9px 0; border-bottom:1px solid var(--line);
+        font-size:0.85rem; color:var(--text-mid);
+    }
+    .factor-row:last-child{ border-bottom:none; }
+    .factor-idx{
+        font-family:'JetBrains Mono',monospace; color:var(--accent); font-weight:700;
+        flex-shrink:0; width:18px;
+    }
+
+    /* ---- buttons ---- */
+    .stButton > button{
+        background:linear-gradient(135deg, var(--accent), var(--accent-dim));
+        color:#06231f; border:none; font-weight:700; border-radius:9px;
+        padding:0.55rem 1rem; letter-spacing:0.01em;
+    }
+    .stButton > button:hover{ filter:brightness(1.08); color:#06231f; }
+
+    /* ---- inputs ---- */
+    .stTextInput input, .stNumberInput input, div[data-baseweb="select"] > div{
+        background:var(--ink-700) !important; border:1px solid var(--line) !important;
+        color:var(--text-hi) !important; border-radius:8px !important;
+    }
+
+    /* ---- sidebar nav label ---- */
+    .nav-label{
+        font-family:'JetBrains Mono',monospace; color:var(--text-low);
+        font-size:0.7rem; letter-spacing:0.1em; text-transform:uppercase;
+        margin:6px 0 8px 4px;
+    }
+
+    .footer-note{
+        text-align:center; color:var(--text-low); font-size:0.72rem;
+        font-family:'JetBrains Mono',monospace; margin-top:28px;
+    }
+
+    hr{ border-color:var(--line) !important; }
+</style>
 """, unsafe_allow_html=True)
 
-# --------------------------------------------------------
-# BUILD A DEMO MODEL & FEATURE NAMES (runs once)
-# --------------------------------------------------------
+# ==========================================================
+# DEMO MODEL — trained once and cached
+# ==========================================================
 @st.cache_resource
 def build_demo_model():
-    """
-    Trains a lightweight RandomForest on synthetic data so the app
-    works out-of-the-box without any external model file.
-    Replace this function with your own model loading logic if needed.
-    """
     transaction_types = ["ATM", "POS", "Online", "QR"]
     merchant_categories = ["Food", "Travel", "Electronics", "Grocery"]
     countries = ["US", "UK", "FR", "NG", "TR"]
@@ -71,22 +200,18 @@ def build_demo_model():
     n   = 2000
     X   = pd.DataFrame(0, index=range(n), columns=feat_cols)
 
-    X["amount"]           = rng.exponential(scale=500, size=n)
-    X["hour"]             = rng.integers(0, 24, size=n)
-    X["device_risk_score"]= rng.uniform(0, 1, size=n)
-    X["ip_risk_score"]    = rng.uniform(0, 1, size=n)
+    X["amount"]            = rng.exponential(scale=500, size=n)
+    X["hour"]              = rng.integers(0, 24, size=n)
+    X["device_risk_score"] = rng.uniform(0, 1, size=n)
+    X["ip_risk_score"]     = rng.uniform(0, 1, size=n)
 
     for col in tt_cols:
-        chosen = rng.choice(tt_cols, size=n)
-        X[col] = (chosen == col).astype(int)
+        X[col] = (rng.choice(tt_cols, size=n) == col).astype(int)
     for col in mc_cols:
-        chosen = rng.choice(mc_cols, size=n)
-        X[col] = (chosen == col).astype(int)
+        X[col] = (rng.choice(mc_cols, size=n) == col).astype(int)
     for col in co_cols:
-        chosen = rng.choice(co_cols, size=n)
-        X[col] = (chosen == col).astype(int)
+        X[col] = (rng.choice(co_cols, size=n) == col).astype(int)
 
-    # Fraud label: higher risk scores + large amounts + night hours → more likely fraud
     fraud_prob = (
         0.4 * X["device_risk_score"]
         + 0.4 * X["ip_risk_score"]
@@ -101,376 +226,323 @@ def build_demo_model():
 
 model, feature_names = build_demo_model()
 
-# --------------------------------------------------------
-# SESSION STATE INITIALIZATION
-# --------------------------------------------------------
-if "risk_score" not in st.session_state:
-    st.session_state.risk_score = 15
-if "risk_level" not in st.session_state:
-    st.session_state.risk_level = "LOW"
-if "risk_factors" not in st.session_state:
-    st.session_state.risk_factors = [
-        "Device fingerprint verified matches typical user device profile.",
-        "IP routing verification shows stable geolocation footprint."
-    ]
-if "chat_history" not in st.session_state:
-    st.session_state.chat_history = [
-        {"role": "assistant", "content": "Hello! I am your AI Fraud Analyst. You can ask me to explain risk factor profiles, suspicious connections, or UPI anomaly models."}
-    ]
-
-# --------------------------------------------------------
-# HEADER
-# --------------------------------------------------------
-st.markdown("""
-    <div class="main-header">
-        <div style="display: flex; align-items: center; gap: 12px;">
-            <span style="font-size: 2rem;">🛡️</span>
-            <div>
-                <h2 style="margin: 0; color: #ff4b4b; font-size: 1.6rem; font-weight: 800; letter-spacing: 0.5px;">AI FRAUD DETECTION</h2>
-                <p style="margin: 0; color: #94a3b8; font-size: 0.8rem;">Cognitive Financial Crime Shield Terminal</p>
-            </div>
-        </div>
-        <div style="display: flex; align-items: center; gap: 15px;">
-            <div style="background: #334155; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600;">
-                🟢 SYSTEM STATUS: ACTIVE
-            </div>
-            <div style="position: relative; cursor: pointer;">
-                <span style="font-size: 1.5rem;">🔔</span>
-                <span style="position: absolute; top: -2px; right: -2px; background: #ef4444; color: white; border-radius: 50%; font-size: 9px; padding: 1px 5px; font-weight: bold;">3</span>
-            </div>
-        </div>
-    </div>
-""", unsafe_allow_html=True)
-
-# --------------------------------------------------------
-# SIDEBAR NAVIGATION
-# --------------------------------------------------------
-st.sidebar.markdown("### 🎛️ Navigation Menu")
-menu_option = st.sidebar.radio(
-    "Select Fraud Detection Module:",
-    [
-        "📊 Dashboard Overview",
-        "💳 Normal Transaction Detection",
-        "🔲 QR Code Detection",
-        "🌐 Fraud Website Detection",
-        "🆔 UPI ID Detection",
-        "🕸️ Fraud Network Analysis",
-        "🤖 AI Chatbot"
+# ==========================================================
+# SESSION STATE
+# ==========================================================
+defaults = {
+    "risk_score": 15,
+    "risk_level": "LOW",
+    "risk_factors": [
+        "Device fingerprint verified — matches typical user device profile.",
+        "IP routing verification shows a stable geolocation footprint."
     ],
-    label_visibility="collapsed"
-)
+    "chat_history": [
+        {"role": "assistant", "content": "Hello — I'm Sentinel's AI Fraud Analyst. Ask me to explain a risk profile, a suspicious connection, or a UPI anomaly model."}
+    ],
+    "scan_count": 148930,
+    "flag_count": 42,
+}
+for k, v in defaults.items():
+    if k not in st.session_state:
+        st.session_state[k] = v
 
-st.sidebar.markdown("---")
-st.sidebar.markdown("### 🛡️ Secure Core Version")
-st.sidebar.info("Model Engine v2.5-Live\nLast Sync: Just Now")
-
-# --------------------------------------------------------
-# HELPER: UPDATE GLOBALLY TRACKED RISK STATE
-# --------------------------------------------------------
 def update_risk_profile(score, level, factors):
     st.session_state.risk_score = score
     st.session_state.risk_level = level
     st.session_state.risk_factors = factors
 
-# --------------------------------------------------------
-# TWO-COLUMN MAIN CONTENT SPLIT
-# --------------------------------------------------------
-main_col, right_col = st.columns([1.8, 1])
+# ==========================================================
+# TOP BAR
+# ==========================================================
+st.markdown(f"""
+<div class="topbar">
+    <div style="display:flex; align-items:center; gap:14px;">
+        <div class="brand-mark">S</div>
+        <div>
+            <p class="brand-name">SENTINEL</p>
+            <p class="brand-sub">AI FRAUD INTELLIGENCE PLATFORM</p>
+        </div>
+    </div>
+    <div style="display:flex; align-items:center; gap:14px;">
+        <span class="clock">{datetime.now().strftime('%a %d %b · %H:%M')}</span>
+        <span class="pill">● ENGINE ONLINE</span>
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+# ==========================================================
+# SIDEBAR
+# ==========================================================
+st.sidebar.markdown('<p class="nav-label">Modules</p>', unsafe_allow_html=True)
+menu_option = st.sidebar.radio(
+    "Select module",
+    [
+        "Overview",
+        "Transaction Risk Scoring",
+        "QR Code Inspection",
+        "Website Reputation Check",
+        "UPI / VPA Lookup",
+        "Network Analysis",
+        "AI Analyst Chat",
+    ],
+    label_visibility="collapsed"
+)
+
+st.sidebar.markdown("<br>", unsafe_allow_html=True)
+st.sidebar.markdown('<p class="nav-label">System</p>', unsafe_allow_html=True)
+st.sidebar.markdown("""
+<div class="card card-tight" style="margin-bottom:10px;">
+    <div style="display:flex; justify-content:space-between; font-size:0.82rem; color:#9aa7bd;">
+        <span>Model engine</span><span style="color:#eef2f8; font-family:'JetBrains Mono',monospace;">v2.5-rf</span>
+    </div>
+    <div style="display:flex; justify-content:space-between; font-size:0.82rem; color:#9aa7bd; margin-top:6px;">
+        <span>Last sync</span><span style="color:#eef2f8; font-family:'JetBrains Mono',monospace;">just now</span>
+    </div>
+</div>
+""", unsafe_allow_html=True)
+st.sidebar.caption("This is a demo interface backed by a synthetically-trained model — not connected to live transaction data.")
+
+# ==========================================================
+# MAIN LAYOUT
+# ==========================================================
+main_col, right_col = st.columns([1.8, 1], gap="medium")
 
 with main_col:
 
-    # --------------------------------------------------------
-    # 1. Dashboard Overview
-    # --------------------------------------------------------
-    if menu_option == "📊 Dashboard Overview":
-        st.subheader("📊 System-wide Overview Dashboard")
-        st.write("Live status telemetry feed of transaction patterns and flagged vector groups.")
+    # ---------------- Overview ----------------
+    if menu_option == "Overview":
+        st.markdown('<p class="section-eyebrow">Live telemetry</p>', unsafe_allow_html=True)
+        st.markdown('<p class="section-title">Platform Overview</p>', unsafe_allow_html=True)
+        st.markdown('<p class="section-desc">Aggregate scan volume and flagged-vector activity across all detection modules.</p>', unsafe_allow_html=True)
 
         m1, m2, m3 = st.columns(3)
-        with m1:
-            st.metric("Transactions Scanned", "148,930", "+14% vs yesterday", delta_color="normal")
-        with m2:
-            st.metric("Anomalies Flagged", "42", "2.1% target rate", delta_color="inverse")
-        with m3:
-            st.metric("Average Threat Response", "48ms", "AI pipeline latency", delta_color="normal")
+        m1.metric("Transactions scanned", f"{st.session_state.scan_count:,}", "+14% vs yesterday")
+        m2.metric("Anomalies flagged", st.session_state.flag_count, "2.1% of volume")
+        m3.metric("Avg. inference latency", "48 ms", "p95 pipeline")
 
-        st.markdown("---")
-        st.markdown("### Recent System Incidents")
-        st.dataframe([
-            {"Timestamp": "14:24:02", "Vector": "UPI ID Anomaly",       "VPA Target":    "rewards-refund@paytm",            "Risk Score": "84%", "Action": "Auto-Hold"},
-            {"Timestamp": "14:21:15", "Vector": "Normal Transaction",    "Account":       "ACC-99812",                       "Risk Score": "24%", "Action": "Approved"},
-            {"Timestamp": "14:15:33", "Vector": "Fraud Domain",          "URL Target":    "http://bank-verification-ssl.com", "Risk Score": "96%", "Action": "Blacklisted"},
-            {"Timestamp": "14:02:49", "Vector": "QR Exploitation",       "Payload Source":"Mule VPA Redirect",               "Risk Score": "71%", "Action": "User Alerted"}
-        ], use_container_width=True)
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown('<p class="section-title" style="font-size:1.02rem;">Recent incidents</p>', unsafe_allow_html=True)
 
-    # --------------------------------------------------------
-    # 2. Normal Transaction Detection  ← FIXED SECTION
-    # --------------------------------------------------------
-    elif menu_option == "💳 Normal Transaction Detection":
-        st.subheader("💳 AI-Powered Transaction Fraud Predictor")
-        st.write("Enter transaction details below to assess fraud probability using the trained model.")
-
-        amount = st.number_input("Amount (₹)", min_value=0.0, value=500.0, step=50.0)
-
-        transaction_type = st.selectbox(
-            "Transaction Type",
-            ["ATM", "POS", "Online", "QR"]
+        incidents = pd.DataFrame([
+            {"Time": "14:24:02", "Vector": "UPI ID anomaly",     "Target": "rewards-refund@paytm",            "Risk": 84, "Action": "Auto-hold"},
+            {"Time": "14:21:15", "Vector": "Transaction",        "Target": "ACC-99812",                       "Risk": 24, "Action": "Approved"},
+            {"Time": "14:15:33", "Vector": "Fraud domain",       "Target": "bank-verification-ssl.com",       "Risk": 96, "Action": "Blacklisted"},
+            {"Time": "14:02:49", "Vector": "QR exploitation",    "Target": "Mule VPA redirect",               "Risk": 71, "Action": "User alerted"},
+        ])
+        st.dataframe(
+            incidents,
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "Risk": st.column_config.ProgressColumn("Risk", min_value=0, max_value=100, format="%d%%"),
+            },
         )
 
-        merchant_category = st.selectbox(
-            "Merchant Category",
-            ["Food", "Travel", "Electronics", "Grocery"]
-        )
+    # ---------------- Transaction Risk Scoring ----------------
+    elif menu_option == "Transaction Risk Scoring":
+        st.markdown('<p class="section-eyebrow">Module 01</p>', unsafe_allow_html=True)
+        st.markdown('<p class="section-title">Transaction Risk Scoring</p>', unsafe_allow_html=True)
+        st.markdown('<p class="section-desc">Score a single transaction in real time using the trained ensemble model.</p>', unsafe_allow_html=True)
 
-        country = st.selectbox(
-            "Country",
-            ["US", "UK", "FR", "NG", "TR"]
-        )
+        with st.container():
+            c1, c2 = st.columns(2)
+            with c1:
+                amount = st.number_input("Amount (₹)", min_value=0.0, value=500.0, step=50.0)
+                transaction_type = st.selectbox("Transaction type", ["ATM", "POS", "Online", "QR"])
+                merchant_category = st.selectbox("Merchant category", ["Food", "Travel", "Electronics", "Grocery"])
+            with c2:
+                country = st.selectbox("Country", ["US", "UK", "FR", "NG", "TR"])
+                hour = st.slider("Transaction hour (24h)", 0, 23, 12)
+                risk_profile = st.selectbox("Simulated risk profile", ["Low Risk", "Medium Risk", "High Risk"])
 
-        hour = st.slider("Transaction Hour (24h)", 0, 23, 12)
+        risk_map = {
+            "Low Risk":    (0.15, 0.10),
+            "Medium Risk": (0.50, 0.45),
+            "High Risk":   (0.95, 0.90),
+        }
+        device_risk_score, ip_risk_score = risk_map[risk_profile]
 
-        risk_profile = st.selectbox(
-            "Risk Profile",
-            ["Low Risk", "Medium Risk", "High Risk"]
-        )
+        st.markdown("<br>", unsafe_allow_html=True)
+        run = st.button("Run fraud prediction", use_container_width=True)
 
-        if risk_profile == "Low Risk":
-            device_risk_score = 0.15
-            ip_risk_score     = 0.10
-        elif risk_profile == "Medium Risk":
-            device_risk_score = 0.50
-            ip_risk_score     = 0.45
-        else:
-            device_risk_score = 0.95
-            ip_risk_score     = 0.90
+        if run:
+            with st.spinner("Running inference pipeline..."):
+                time.sleep(0.5)
 
-        if st.button("🔍 Predict Fraud", use_container_width=True):
-            with st.spinner("Running AI inference pipeline..."):
-                time.sleep(0.6)
-
-            # Build input row — initialise all features to 0
             input_data = {col: 0 for col in feature_names}
-
-            # Numerical features
             input_data["amount"]            = amount
             input_data["hour"]              = hour
             input_data["device_risk_score"] = device_risk_score
             input_data["ip_risk_score"]     = ip_risk_score
-
-            # One-hot dummy columns
-            for col_key, col_val in [
-                (f"transaction_type_{transaction_type}", 1),
-                (f"merchant_category_{merchant_category}", 1),
-                (f"country_{country}", 1),
+            for col_key in [
+                f"transaction_type_{transaction_type}",
+                f"merchant_category_{merchant_category}",
+                f"country_{country}",
             ]:
                 if col_key in input_data:
-                    input_data[col_key] = col_val
+                    input_data[col_key] = 1
 
-            input_df   = pd.DataFrame([input_data])
-            prediction = model.predict(input_df)[0]
-            probability= model.predict_proba(input_df)[0][1]
-            score_pct  = int(probability * 100)
+            input_df    = pd.DataFrame([input_data])
+            prediction  = model.predict(input_df)[0]
+            probability = model.predict_proba(input_df)[0][1]
+            score_pct   = int(probability * 100)
 
             if prediction == 1:
                 current_level = "HIGH" if score_pct >= 70 else "MEDIUM"
-                st.error(f"⚠️ **Fraud Detected** — Probability: **{probability:.2%}**")
-                update_risk_profile(
-                    score=score_pct,
-                    level=current_level,
-                    factors=[
-                        f"Device risk score elevated at {device_risk_score:.2f}.",
-                        f"IP risk score elevated at {ip_risk_score:.2f}.",
-                        f"Transaction of ₹{amount:.0f} via {transaction_type} flagged at hour {hour}.",
-                        f"Country '{country}' / category '{merchant_category}' combination is suspicious."
-                    ]
-                )
+                st.error(f"Fraud signal detected — probability **{probability:.1%}**")
+                update_risk_profile(score_pct, current_level, [
+                    f"Device risk score elevated at {device_risk_score:.2f}.",
+                    f"IP risk score elevated at {ip_risk_score:.2f}.",
+                    f"₹{amount:.0f} via {transaction_type} flagged at hour {hour}.",
+                    f"Country '{country}' / category '{merchant_category}' combination is unusual.",
+                ])
             else:
-                current_level = "LOW"
-                st.success(f"✅ **Legitimate Transaction** — Fraud Probability: **{probability:.2%}**")
-                update_risk_profile(
-                    score=score_pct,
-                    level=current_level,
-                    factors=[
-                        f"Device fingerprint verified (score: {device_risk_score:.2f}).",
-                        f"IP routing looks clean (score: {ip_risk_score:.2f}).",
-                        f"Transaction of ₹{amount:.0f} via {transaction_type} is within normal range.",
-                        f"Country '{country}' / category '{merchant_category}' carries no anomaly flags."
-                    ]
-                )
+                st.success(f"Transaction looks legitimate — fraud probability **{probability:.1%}**")
+                update_risk_profile(score_pct, "LOW", [
+                    f"Device fingerprint verified (score {device_risk_score:.2f}).",
+                    f"IP routing looks clean (score {ip_risk_score:.2f}).",
+                    f"₹{amount:.0f} via {transaction_type} is within normal range.",
+                    f"Country '{country}' / category '{merchant_category}' carries no anomaly flags.",
+                ])
 
-            # Feature importance mini-bar chart
-            st.markdown("---")
-            st.markdown("##### 📊 Model Feature Contributions")
+            st.markdown("<br>", unsafe_allow_html=True)
+            st.markdown('<p class="section-title" style="font-size:1rem;">Model feature contributions</p>', unsafe_allow_html=True)
             importances = model.feature_importances_
-            top_n       = 6
-            top_idx     = np.argsort(importances)[::-1][:top_n]
-            top_feats   = [feature_names[i] for i in top_idx]
-            top_vals    = [importances[i] for i in top_idx]
+            top_idx   = np.argsort(importances)[::-1][:6]
+            top_feats = [feature_names[i] for i in top_idx]
+            top_vals  = [importances[i] for i in top_idx]
 
             fig_bar = go.Figure(go.Bar(
-                x=top_vals[::-1],
-                y=top_feats[::-1],
-                orientation="h",
-                marker_color="#3b82f6"
+                x=top_vals[::-1], y=top_feats[::-1], orientation="h",
+                marker_color="#3dd6c4",
             ))
             fig_bar.update_layout(
-                height=220,
-                margin=dict(l=10, r=10, t=10, b=10),
-                paper_bgcolor="rgba(0,0,0,0)",
-                plot_bgcolor="rgba(0,0,0,0)",
-                xaxis_title="Importance",
+                height=230, margin=dict(l=10, r=10, t=10, b=10),
+                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                font=dict(color="#9aa7bd", family="Inter"),
+                xaxis=dict(gridcolor="#243044", title="Importance"),
+                yaxis=dict(gridcolor="#243044"),
             )
             st.plotly_chart(fig_bar, use_container_width=True)
 
-    # --------------------------------------------------------
-    # 3. QR Code Detection
-    # --------------------------------------------------------
-    elif menu_option == "🔲 QR Code Detection":
-        st.subheader("🔲 QR Decryption & Spoofing Defense")
-        st.write("Upload static printed QR codes to scan embedded links for script injection or redirection routes.")
+    # ---------------- QR Code Inspection ----------------
+    elif menu_option == "QR Code Inspection":
+        st.markdown('<p class="section-eyebrow">Module 02</p>', unsafe_allow_html=True)
+        st.markdown('<p class="section-title">QR Code Inspection</p>', unsafe_allow_html=True)
+        st.markdown('<p class="section-desc">Scan embedded payloads for redirect chains, shorteners, and spoofed banking keywords.</p>', unsafe_allow_html=True)
 
-        uploaded_file = st.file_uploader("Upload QR Code Image Target", type=["png", "jpg", "jpeg"])
-        raw_qr_data   = st.text_input("Or input raw extracted QR payload string directly:")
+        uploaded_file = st.file_uploader("Upload QR code image", type=["png", "jpg", "jpeg"])
+        raw_qr_data   = st.text_input("Or paste a raw extracted QR payload string")
 
         if uploaded_file or raw_qr_data:
-            with st.spinner("Extracting hidden metadata packets..."):
-                time.sleep(0.8)
+            with st.spinner("Extracting embedded metadata..."):
+                time.sleep(0.6)
 
             payload = raw_qr_data if raw_qr_data else "https://shorturl.at/xK98a-secure-verification"
-            if "shorturl" in payload or "secure-verification" in payload or "bit.ly" in payload:
-                update_risk_profile(
-                    score=76,
-                    level="HIGH",
-                    factors=[
-                        "Embedded URL maps through an untrusted domain shortener.",
-                        "String analysis contains high-confidence banking keywords masquerading as target VPA."
-                    ]
-                )
-                st.error("🚨 Malicious QR Payload Indicator Triggered!")
+            if any(k in payload for k in ["shorturl", "secure-verification", "bit.ly"]):
+                update_risk_profile(76, "HIGH", [
+                    "Embedded URL routes through an untrusted domain shortener.",
+                    "Payload contains banking keywords masquerading as a target VPA.",
+                ])
+                st.error("Malicious QR payload indicator triggered.")
             else:
-                update_risk_profile(
-                    score=18,
-                    level="LOW",
-                    factors=["QR string successfully maps to verified merchant gateway directly."]
-                )
-                st.success("✅ Secure QR code signature. Proceed securely.")
+                update_risk_profile(18, "LOW", ["QR string maps directly to a verified merchant gateway."])
+                st.success("QR signature looks secure.")
 
-    # --------------------------------------------------------
-    # 4. Fraud Website Detection
-    # --------------------------------------------------------
-    elif menu_option == "🌐 Fraud Website Detection":
-        st.subheader("🌐 Website Reputation & Phishing URL Check")
-        st.write("Evaluate domain registration dates, hosting nameservers, and spelling vectors for high-risk flags.")
+    # ---------------- Website Reputation Check ----------------
+    elif menu_option == "Website Reputation Check":
+        st.markdown('<p class="section-eyebrow">Module 03</p>', unsafe_allow_html=True)
+        st.markdown('<p class="section-title">Website Reputation Check</p>', unsafe_allow_html=True)
+        st.markdown('<p class="section-desc">Evaluate domain age, hosting signals, and spelling-vector typo-squatting patterns.</p>', unsafe_allow_html=True)
 
-        target_domain = st.text_input("Target Domain URL Address", placeholder="http://login-verification-paypal-security.com")
+        target_domain = st.text_input("Target domain URL", placeholder="http://login-verification-paypal-security.com")
 
-        if st.button("Query Domain Database"):
+        if st.button("Run domain audit"):
             if not target_domain:
-                st.info("Please enter a domain URL to run live audits.")
+                st.info("Enter a domain URL to run the audit.")
             else:
-                with st.spinner("Scanning DNS records, WHOIS database, and certificate trails..."):
-                    time.sleep(1.0)
+                with st.spinner("Scanning DNS, WHOIS, and certificate trails..."):
+                    time.sleep(0.8)
 
                 suspicious_keywords = ["secure", "bank", "login", "verification", "update", "paypal", "support"]
                 found_flags = [kw for kw in suspicious_keywords if kw in target_domain.lower()]
 
                 if len(found_flags) >= 2 or ".net" in target_domain or ".xyz" in target_domain:
-                    update_risk_profile(
-                        score=91,
-                        level="HIGH",
-                        factors=[
-                            f"Domain matches multiple high-risk typo-squatting keyphrases: {found_flags}.",
-                            "SSL Certificate authority is unrecognized or missing.",
-                            "Domain created within the last 72 hours."
-                        ]
-                    )
-                    st.error("🚨 Phishing Target Vector Verified!")
+                    update_risk_profile(91, "HIGH", [
+                        f"Domain matches multiple typo-squatting keyphrases: {', '.join(found_flags) if found_flags else 'n/a'}.",
+                        "SSL certificate authority is unrecognized or missing.",
+                        "Domain was registered within the last 72 hours.",
+                    ])
+                    st.error("Phishing target vector verified.")
                 else:
-                    update_risk_profile(
-                        score=11,
-                        level="LOW",
-                        factors=[
-                            "Domain registered with recognized high-trust authority.",
-                            "Establishment timeline exceeds 1200 days verification index."
-                        ]
-                    )
-                    st.success("✅ Domain verified clean. No indicators of threat found.")
+                    update_risk_profile(11, "LOW", [
+                        "Domain registered with a recognized, high-trust authority.",
+                        "Domain history exceeds 1,200 days.",
+                    ])
+                    st.success("Domain verified clean.")
 
-    # --------------------------------------------------------
-    # 5. UPI ID Detection
-    # --------------------------------------------------------
-    elif menu_option == "🆔 UPI ID Detection":
-        st.subheader("🆔 Virtual Payment Address (VPA) Threat Auditor")
-        st.write("Query UPI handles against crowd-sourced spam lists and instant transaction reversal metrics.")
+    # ---------------- UPI / VPA Lookup ----------------
+    elif menu_option == "UPI / VPA Lookup":
+        st.markdown('<p class="section-eyebrow">Module 04</p>', unsafe_allow_html=True)
+        st.markdown('<p class="section-title">UPI / VPA Lookup</p>', unsafe_allow_html=True)
+        st.markdown('<p class="section-desc">Check a virtual payment address against spam reports and reversal-rate anomalies.</p>', unsafe_allow_html=True)
 
-        target_vpa = st.text_input("VPA UPI Handle Address", placeholder="e.g., trust-claims@freecharge")
+        target_vpa = st.text_input("UPI handle / VPA", placeholder="e.g. trust-claims@freecharge")
 
-        if st.button("Evaluate UPI Address"):
+        if st.button("Evaluate UPI address"):
             if not target_vpa:
-                st.info("Input a payment address VPA to check reputation.")
+                st.info("Enter a VPA to check its reputation.")
             else:
-                with st.spinner("Requesting historical spam databases..."):
+                with st.spinner("Querying historical spam databases..."):
                     time.sleep(0.5)
 
-                if "free" in target_vpa.lower() or "spam" in target_vpa.lower() or "cash" in target_vpa.lower():
-                    update_risk_profile(
-                        score=69,
-                        level="MEDIUM",
-                        factors=[
-                            "Handle reported in 12 independent spam flag groups.",
-                            "VPA contains high-frequency refund attempt anomalies.",
-                            "Mule account registration flag on associated UPI system bank."
-                        ]
-                    )
-                    st.warning("⚠️ Spammed UPI destination found. Hold highly suggested.")
+                if any(k in target_vpa.lower() for k in ["free", "spam", "cash"]):
+                    update_risk_profile(69, "MEDIUM", [
+                        "Handle reported across multiple independent spam-flag groups.",
+                        "VPA shows high-frequency refund-attempt anomalies.",
+                        "Associated bank account carries a mule-registration flag.",
+                    ])
+                    st.warning("Spammed UPI destination found — hold recommended.")
                 else:
-                    update_risk_profile(
-                        score=9,
-                        level="LOW",
-                        factors=[
-                            "Fully verified KYC account owner confirmation.",
-                            "UPI velocity rates within standard local brackets."
-                        ]
-                    )
-                    st.success("✅ Account verified safe.")
+                    update_risk_profile(9, "LOW", [
+                        "Fully verified KYC account ownership.",
+                        "UPI velocity is within standard local brackets.",
+                    ])
+                    st.success("Account verified as safe.")
 
-    # --------------------------------------------------------
-    # 6. Fraud Network Analysis
-    # --------------------------------------------------------
-    elif menu_option == "🕸️ Fraud Network Analysis":
-        st.subheader("🕸️ Dynamic Fraud Association Graph Viz")
-        st.write("This graphical network exposes connected entities, mules, and untrustworthy foreign mixers mapping to the target ID.")
+    # ---------------- Network Analysis ----------------
+    elif menu_option == "Network Analysis":
+        st.markdown('<p class="section-eyebrow">Module 05</p>', unsafe_allow_html=True)
+        st.markdown('<p class="section-title">Fraud Network Analysis</p>', unsafe_allow_html=True)
+        st.markdown('<p class="section-desc">Graph of connected entities, mule accounts, and exit pathways for the target transaction.</p>', unsafe_allow_html=True)
 
         st.graphviz_chart('''
         digraph {
-            node [style=filled, shape=box, fontname="Helvetica", fontsize=10];
-            "Target Transaction ID" [fillcolor="#ffb3b3", color="#ff4d4d", label="Suspicious Transaction\\n(Score: 84%)"];
-            "Mule Wallet Alpha"     [fillcolor="#ffe6b3", label="Mule Wallet Alpha\\n(Flagged IP)"];
-            "Trusted Merchant Account" [fillcolor="#d1e7dd", label="Trusted Portal\\n(Verified KYC)"];
-            "Offshore Asset Mixer"  [fillcolor="#f8d7da", color="#dc3545", label="Offshore Mixer\\n(Blacklisted Address)"];
+            bgcolor="transparent";
+            node [style=filled, shape=box, fontname="Helvetica", fontsize=10, fontcolor="#0a0e16"];
+            edge [fontname="Helvetica", fontsize=9, color="#5e6b82", fontcolor="#9aa7bd"];
+            "Target Transaction" [fillcolor="#ef5d6f", label="Suspicious Transaction\\n(Score: 84%)"];
+            "Mule Wallet Alpha"  [fillcolor="#f5b84e", label="Mule Wallet Alpha\\n(Flagged IP)"];
+            "Trusted Merchant"   [fillcolor="#3dd6c4", label="Trusted Portal\\n(Verified KYC)"];
+            "Offshore Mixer"     [fillcolor="#ef5d6f", label="Offshore Mixer\\n(Blacklisted Address)"];
 
-            "Target Transaction ID" -> "Mule Wallet Alpha"        [label="Rapid Split-Layering"];
-            "Target Transaction ID" -> "Trusted Merchant Account" [label="Valid Check"];
-            "Mule Wallet Alpha"     -> "Offshore Asset Mixer"     [color="#dc3545", style=bold, label="Exfiltration Pathway"];
+            "Target Transaction" -> "Mule Wallet Alpha" [label="rapid split-layering"];
+            "Target Transaction" -> "Trusted Merchant"  [label="valid check"];
+            "Mule Wallet Alpha"  -> "Offshore Mixer"    [color="#ef5d6f", style=bold, label="exfiltration pathway"];
         }
         ''')
 
-        update_risk_profile(
-            score=84,
-            level="HIGH",
-            factors=[
-                "High proximity relationship to documented offshore mixers.",
-                "Structure splitting signatures matching rapid asset exfiltration strategies."
-            ]
-        )
-        st.info("💡 Review the visualization to identify layering strategies and exit accounts.")
+        update_risk_profile(84, "HIGH", [
+            "High proximity to documented offshore mixer addresses.",
+            "Split-layering structure matches known exfiltration strategies.",
+        ])
+        st.info("Review the graph above to trace layering strategy and likely exit accounts.")
 
-    # --------------------------------------------------------
-    # 7. AI Chatbot
-    # --------------------------------------------------------
-    elif menu_option == "🤖 AI Chatbot":
-        st.subheader("🤖 Cognitive Fraud Insights Assistant")
-        st.write("Understand AI threat logic, receive explanation of variables, or request defensive next steps.")
+    # ---------------- AI Analyst Chat ----------------
+    elif menu_option == "AI Analyst Chat":
+        st.markdown('<p class="section-eyebrow">Module 06</p>', unsafe_allow_html=True)
+        st.markdown('<p class="section-title">AI Analyst Chat</p>', unsafe_allow_html=True)
+        st.markdown('<p class="section-desc">Ask how the current risk score was derived, or request next steps.</p>', unsafe_allow_html=True)
 
         for chat in st.session_state.chat_history:
             with st.chat_message(chat["role"]):
@@ -483,73 +555,64 @@ with main_col:
             with st.chat_message("user"):
                 st.write(user_input)
 
-            with st.spinner("AI analyzing profile conditions..."):
-                time.sleep(0.7)
+            with st.spinner("Analyzing profile conditions..."):
+                time.sleep(0.6)
 
             ai_response = (
-                f"Analyzing your query relative to active parameters "
-                f"(Risk Score: {st.session_state.risk_score}%, "
-                f"Risk Level: {st.session_state.risk_level}). "
-                f"This threat rating is primarily driven by: "
-                f"{', '.join(st.session_state.risk_factors)}. "
-                f"To secure this path, I advise isolating the destination address "
-                f"and executing immediate transaction rollbacks."
+                f"Based on current parameters (risk score {st.session_state.risk_score}%, "
+                f"level {st.session_state.risk_level}), the rating is primarily driven by: "
+                f"{' '.join(st.session_state.risk_factors)} "
+                f"Recommended action: isolate the destination address and prepare a transaction rollback."
             )
             st.session_state.chat_history.append({"role": "assistant", "content": ai_response})
             with st.chat_message("assistant"):
                 st.write(ai_response)
 
-# --------------------------------------------------------
-# RIGHT PANEL — REAL-TIME RISK RADAR
-# --------------------------------------------------------
+# ==========================================================
+# RIGHT PANEL — RISK RADAR
+# ==========================================================
 with right_col:
-    st.markdown('<div class="risk-card">', unsafe_allow_html=True)
-    st.subheader("🛡️ Real-Time Risk Radar")
-    st.write("Evaluations adjust automatically based on live workspace interactions.")
+    st.markdown('<div class="card">', unsafe_allow_html=True)
+    st.markdown('<p class="section-eyebrow">Live</p>', unsafe_allow_html=True)
+    st.markdown('<p class="section-title" style="font-size:1.05rem;">Risk Radar</p>', unsafe_allow_html=True)
+    st.markdown('<p class="section-desc">Updates automatically as you interact with each module.</p>', unsafe_allow_html=True)
 
-    bar_color = "#2ecc71"
-    if st.session_state.risk_level == "MEDIUM":
-        bar_color = "#f1c40f"
-    elif st.session_state.risk_level == "HIGH":
-        bar_color = "#e74c3c"
+    bar_color = {"LOW": "#3dd6c4", "MEDIUM": "#f5b84e", "HIGH": "#ef5d6f"}[st.session_state.risk_level]
 
     fig = go.Figure(go.Indicator(
         mode="gauge+number",
         value=st.session_state.risk_score,
+        number={"suffix": "%", "font": {"color": "#eef2f8", "size": 32, "family": "JetBrains Mono"}},
         domain={'x': [0, 1], 'y': [0, 1]},
         gauge={
-            'axis': {'range': [0, 100], 'tickwidth': 1, 'tickcolor': "#475569"},
-            'bar':  {'color': bar_color},
-            'bgcolor': "#e2e8f0",
+            'axis': {'range': [0, 100], 'tickwidth': 1, 'tickcolor': "#5e6b82", 'tickfont': {'color': '#5e6b82', 'size': 9}},
+            'bar': {'color': bar_color, 'thickness': 0.28},
+            'bgcolor': "#161d2b",
             'borderwidth': 1,
-            'bordercolor': "#cbd5e1",
+            'bordercolor': "#243044",
             'steps': [
-                {'range': [0,  35], 'color': '#f1f5f9'},
-                {'range': [35, 70], 'color': '#fef3c7'},
-                {'range': [70,100], 'color': '#fee2e2'}
+                {'range': [0, 35],  'color': 'rgba(61,214,196,0.08)'},
+                {'range': [35, 70], 'color': 'rgba(245,184,78,0.08)'},
+                {'range': [70, 100],'color': 'rgba(239,93,111,0.1)'},
             ],
         }
     ))
     fig.update_layout(
-        height=220,
-        margin=dict(l=15, r=15, t=10, b=10),
-        paper_bgcolor='rgba(0,0,0,0)',
-        plot_bgcolor='rgba(0,0,0,0)'
+        height=210, margin=dict(l=15, r=15, t=10, b=10),
+        paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
     )
     st.plotly_chart(fig, use_container_width=True)
 
-    level_color_map = {"LOW": "#d1e7dd", "MEDIUM": "#fff3cd", "HIGH": "#f8d7da"}
-    text_color_map  = {"LOW": "#0f5132", "MEDIUM": "#664d03", "HIGH": "#842029"}
-    st.markdown(f"""
-        <div style="text-align:center; background-color:{level_color_map[st.session_state.risk_level]};
-                    color:{text_color_map[st.session_state.risk_level]}; padding:8px; border-radius:8px;
-                    font-weight:bold; font-size:1.1rem; margin-bottom:20px;">
-            RISK ASSESSMENT: {st.session_state.risk_level}
-        </div>
-    """, unsafe_allow_html=True)
+    badge_class = {"LOW": "risk-low", "MEDIUM": "risk-medium", "HIGH": "risk-high"}[st.session_state.risk_level]
+    st.markdown(f'<div class="risk-badge {badge_class}">RISK LEVEL — {st.session_state.risk_level}</div>', unsafe_allow_html=True)
 
-    st.markdown("##### 🔬 Threat Vector Factors:")
-    for idx, factor in enumerate(st.session_state.risk_factors, 1):
-        st.markdown(f"**{idx}.** {factor}")
+    st.markdown('<p style="color:#9aa7bd; font-size:0.78rem; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; margin-bottom:4px;">Threat factors</p>', unsafe_allow_html=True)
+    factors_html = "".join(
+        f'<div class="factor-row"><span class="factor-idx">{i:02d}</span><span>{f}</span></div>'
+        for i, f in enumerate(st.session_state.risk_factors, 1)
+    )
+    st.markdown(factors_html, unsafe_allow_html=True)
 
     st.markdown('</div>', unsafe_allow_html=True)
+
+st.markdown('<p class="footer-note">SENTINEL · DEMO BUILD — synthetic model, no live data connection</p>', unsafe_allow_html=True)
