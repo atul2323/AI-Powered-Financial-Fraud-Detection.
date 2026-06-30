@@ -183,6 +183,47 @@ st.markdown("""
         70%{ box-shadow:0 0 0 8px rgba(61,214,196,0);}
         100%{ box-shadow:0 0 0 0 rgba(61,214,196,0);}
     }
+
+    /* ---- floating AI analyst bubble (bottom-right, on top of everything) ---- */
+    .st-key-fab_container{
+        position:fixed; bottom:26px; right:28px; z-index:9999; width:auto !important;
+    }
+    .st-key-fab_container .stButton{ width:auto; }
+    .st-key-fab_container .stButton > button{
+        width:62px; height:62px; border-radius:50%;
+        background:linear-gradient(135deg, var(--violet), var(--accent));
+        color:#06231f; font-size:1.5rem; font-weight:800;
+        box-shadow:0 8px 24px rgba(61,214,196,0.35), 0 2px 8px rgba(0,0,0,0.4);
+        border:2px solid rgba(255,255,255,0.15);
+        animation: fabFloat 2.6s ease-in-out infinite;
+        padding:0; line-height:1;
+    }
+    .st-key-fab_container .stButton > button:hover{ filter:brightness(1.1); transform:scale(1.05); }
+    @keyframes fabFloat{ 0%,100%{ transform:translateY(0);} 50%{ transform:translateY(-6px);} }
+
+    .fab-badge{
+        position:fixed; bottom:74px; right:24px; z-index:10000;
+        background:var(--danger); color:white; font-size:0.65rem; font-weight:800;
+        width:19px; height:19px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+        font-family:'JetBrains Mono',monospace; box-shadow:0 0 0 2px var(--ink-950);
+        animation: pulseDot 1.8s infinite;
+    }
+
+    .st-key-analyst_panel{
+        position:fixed; bottom:104px; right:28px; z-index:9998;
+        width:370px; max-height:62vh; overflow-y:auto;
+        background:var(--ink-800); border:1px solid var(--line); border-radius:16px;
+        box-shadow:0 20px 50px rgba(0,0,0,0.5);
+        padding:16px 16px 8px 16px;
+        animation: panelPop 0.28s cubic-bezier(.2,1.2,.4,1) both;
+    }
+    @keyframes panelPop{
+        0%{ opacity:0; transform:translateY(16px) scale(0.96); }
+        100%{ opacity:1; transform:translateY(0) scale(1); }
+    }
+    @media (max-width: 640px){
+        .st-key-analyst_panel{ width:88vw; right:6vw; }
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -261,41 +302,65 @@ def update_risk_profile(score, level, factors):
     st.session_state.risk_factors = factors
 
 def render_ai_analyst(chat_key, placeholder, context_line):
-    """Renders a persistent AI Analyst dock — used identically on every tab."""
-    st.markdown("<br>", unsafe_allow_html=True)
-    with st.expander("🧠  AI Analyst — ask about this module", expanded=False):
-        st.markdown(f"""
-        <div class="analyst-head">
-            <div class="analyst-avatar">🤖</div>
-            <div>
-                <div style="color:var(--text-hi); font-weight:700; font-size:0.88rem;">Sentinel Analyst <span class="analyst-pulse"></span></div>
-                <div style="color:var(--text-low); font-size:0.74rem; font-family:'JetBrains Mono',monospace;">{context_line}</div>
+    """Registers which module's chat thread + context the floating analyst should use.
+    The actual floating widget is drawn once at the end of the script via render_floating_analyst()."""
+    st.session_state["active_chat_key"] = chat_key
+    st.session_state["active_placeholder"] = placeholder
+    st.session_state["active_context_line"] = context_line
+
+
+def render_floating_analyst():
+    """Floating AI Analyst bubble, pinned bottom-right, on top of every tab."""
+    chat_key      = st.session_state.get("active_chat_key", "chat_overview")
+    placeholder   = st.session_state.get("active_placeholder", "Ask the AI analyst...")
+    context_line  = st.session_state.get("active_context_line", "context: overview")
+
+    if "analyst_open" not in st.session_state:
+        st.session_state.analyst_open = False
+
+    if not st.session_state.analyst_open:
+        st.markdown('<div class="fab-badge">●</div>', unsafe_allow_html=True)
+
+    with st.container(key="fab_container"):
+        icon = "✕" if st.session_state.analyst_open else "🤖"
+        if st.button(icon, key="fab_button"):
+            st.session_state.analyst_open = not st.session_state.analyst_open
+            st.rerun()
+
+    if st.session_state.analyst_open:
+        with st.container(key="analyst_panel"):
+            st.markdown(f"""
+            <div class="analyst-head">
+                <div class="analyst-avatar">🤖</div>
+                <div>
+                    <div style="color:var(--text-hi); font-weight:700; font-size:0.88rem;">Sentinel Analyst <span class="analyst-pulse"></span></div>
+                    <div style="color:var(--text-low); font-size:0.74rem; font-family:'JetBrains Mono',monospace;">{context_line}</div>
+                </div>
             </div>
-        </div>
-        """, unsafe_allow_html=True)
-        st.markdown("<br>", unsafe_allow_html=True)
+            <hr style="margin:10px 0;">
+            """, unsafe_allow_html=True)
 
-        for chat in st.session_state[chat_key]:
-            with st.chat_message(chat["role"]):
-                st.write(chat["content"])
+            for chat in st.session_state[chat_key]:
+                with st.chat_message(chat["role"]):
+                    st.write(chat["content"])
 
-        user_input = st.chat_input(placeholder, key=f"input_{chat_key}")
-        if user_input:
-            st.session_state[chat_key].append({"role": "user", "content": user_input})
-            with st.chat_message("user"):
-                st.write(user_input)
-            with st.spinner("Analyzing..."):
-                time.sleep(0.5)
-            ai_response = (
-                f"Based on the current risk profile (score {st.session_state.risk_score}%, "
-                f"level {st.session_state.risk_level}), here's what stands out: "
-                f"{' '.join(st.session_state.risk_factors)} "
-                f"In the context of this module, I'd recommend cross-checking the flagged "
-                f"attributes against your historical baseline before taking action."
-            )
-            st.session_state[chat_key].append({"role": "assistant", "content": ai_response})
-            with st.chat_message("assistant"):
-                st.write(ai_response)
+            user_input = st.chat_input(placeholder, key=f"input_{chat_key}")
+            if user_input:
+                st.session_state[chat_key].append({"role": "user", "content": user_input})
+                with st.chat_message("user"):
+                    st.write(user_input)
+                with st.spinner("Analyzing..."):
+                    time.sleep(0.5)
+                ai_response = (
+                    f"Based on the current risk profile (score {st.session_state.risk_score}%, "
+                    f"level {st.session_state.risk_level}), here's what stands out: "
+                    f"{' '.join(st.session_state.risk_factors)} "
+                    f"In the context of this module, I'd recommend cross-checking the flagged "
+                    f"attributes against your historical baseline before taking action."
+                )
+                st.session_state[chat_key].append({"role": "assistant", "content": ai_response})
+                with st.chat_message("assistant"):
+                    st.write(ai_response)
 
 # ==========================================================
 # TOP BAR
@@ -622,3 +687,8 @@ with right_col:
     st.markdown('</div>', unsafe_allow_html=True)
 
 st.markdown('<p class="footer-note">SENTINEL · DEMO BUILD — synthetic model, no live data connection</p>', unsafe_allow_html=True)
+
+# ==========================================================
+# FLOATING AI ANALYST — pinned bottom-right, on top of every tab
+# ==========================================================
+render_floating_analyst()
